@@ -1,107 +1,797 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Racer.X Defender</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#060708" />
+    <title>Dusty Web Prototype</title>
+    <style>
+      :root {
+        --x-bg: #060708;
+        --x-bg2: #0e1012;
+        --x-ink: #e8ecef;
+        --x-ink2: #a3abb3;
+        --x-ink3: #8d959d;
+        --x-green: #39ff14;
+        --x-lime: #b6ff3b;
+        --x-green-d: #1c8f06;
+        --x-red: #e3261b;
+        --x-haz: #ffb000;
+        --x-glass: #0f1a0d;
+        --x-glass2: #22272b;
+        --x-line: rgba(255, 255, 255, 0.09);
+        --x-r: 14px;
+        --x-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --x-head: "Arial Black", "Helvetica Neue", system-ui, -apple-system, Roboto, sans-serif;
+        --x-mono: ui-monospace, "SF Mono", "Roboto Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+        --x-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --x-chrome: linear-gradient(180deg, #ffffff 0%, #e2e6ea 26%, #8a929b 47%, #f5f7f9 53%, #bcc3ca 72%, #6c747d 100%);
+        --x-metal: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, rgba(0, 0, 0, 0.035) 1px 2px, transparent 2px 4px), linear-gradient(180deg, #2c3035 0%, #1d2024 55%, #15171a 100%);
+        --x-screw: radial-gradient(circle, #d8dde2 0, #8f969e 2.4px, #4a5057 4.4px, #0b0c0d 5.2px, transparent 5.9px);
+        --x-slot: linear-gradient(#0b0c0d, #0b0c0d);
+        --x-screws:
+          var(--x-slot) left 9px top 11px / 6px 2px no-repeat, var(--x-slot) right 9px top 11px / 6px 2px no-repeat,
+          var(--x-slot) left 9px bottom 11px / 6px 2px no-repeat, var(--x-slot) right 9px bottom 11px / 6px 2px no-repeat,
+          var(--x-screw) left 6px top 6px / 12px 12px no-repeat, var(--x-screw) right 6px top 6px / 12px 12px no-repeat,
+          var(--x-screw) left 6px bottom 6px / 12px 12px no-repeat, var(--x-screw) right 6px bottom 6px / 12px 12px no-repeat;
+        --x-inset-sh: inset 0 2px 6px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 0 rgba(255, 255, 255, 0.07);
+        --x-lcd: repeating-linear-gradient(0deg, rgba(57, 255, 20, 0.045) 0 1px, transparent 1px 3px), #020402;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background:
+          radial-gradient(120% 60% at 50% -10%, #14191c 0%, var(--x-bg) 60%) fixed,
+          var(--x-bg);
+        color: var(--x-ink);
+        font: 16px/1.45 var(--x-font);
+        -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
+        overflow-x: hidden;
+      }
+      #x-dust, #x-fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      #x-dust { z-index: 0; }
+      #x-fx { z-index: 30; }
+      .x-grain {
+        position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: 0.05;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation: x-grain 1.2s steps(4) infinite;
+      }
+      @keyframes x-grain { 0%{transform:translate(0,0)} 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-2%,-1%)} }
 
-  <style>
-    body {
-      margin: 0;
-      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
-      font-family: Arial, sans-serif;
-      color: #00ff88;
-    }
+      .x-app {
+        position: relative; z-index: 2; max-width: 460px; margin: 0 auto; min-height: 100%;
+        padding: max(16px, env(safe-area-inset-top)) 18px 96px; display: flex; flex-direction: column;
+      }
+      .x-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; }
+      .x-top-r { display: flex; align-items: center; gap: 8px; }
+      .x-brand {
+        display: flex; align-items: center; gap: 8px; font: 900 22px/1 var(--x-head); letter-spacing: 0.02em; text-transform: uppercase;
+        background: var(--x-chrome); -webkit-background-clip: text; background-clip: text; color: #dfe3e7; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 0 #000);
+      }
+      .x-brand svg { width: 34px; height: 34px; filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.55)); }
+      .x-dots { display: flex; gap: 6px; justify-content: center; margin: 8px 0 18px; padding: 7px 10px; border-radius: 8px; background: #08090a; box-shadow: var(--x-inset-sh); width: max-content; margin-inline: auto; }
+      .x-dots i { width: 28px; height: 8px; border-radius: 2px; background: #171a1d; box-shadow: inset 0 1px 2px #000; transition: all 0.35s var(--x-ease); }
+      .x-dots i.on { width: 42px; background: var(--x-green); box-shadow: 0 0 10px var(--x-green), 0 0 2px var(--x-lime), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+      .x-dots i.done { background: var(--x-green-d); box-shadow: 0 0 6px rgba(57, 255, 20, 0.35); }
 
-    header {
-      text-align: center;
-      padding: 2rem;
-      font-size: 2rem;
-      border-bottom: 2px solid #00ff88;
-      box-shadow: 0 0 20px #00ff88;
-    }
+      .x-stage { position: relative; flex: 1; }
+      .x-screen { display: none; flex-direction: column; gap: 16px; animation: x-in 0.5s var(--x-ease) both; }
+      .x-screen.is-on { display: flex; }
+      @keyframes x-in { from { opacity: 0; transform: translateY(14px); filter: brightness(2) saturate(0); } }
 
-    .container {
-      max-width: 600px;
-      margin: auto;
-      padding: 2rem;
-      display: grid;
-      gap: 1rem;
-    }
+      h1, h2 {
+        margin: 0; line-height: 1.1; font-family: var(--x-head); font-weight: 900; letter-spacing: 0;
+        background: var(--x-chrome); -webkit-background-clip: text; background-clip: text; color: #dfe3e7; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
+      }
+      h1 { font-size: 34px; }
+      h2 { font-size: 26px; }
+      .x-sub { color: var(--x-ink2); margin: 0; }
+      .x-eyebrow { display: flex; align-items: center; gap: 8px; font: 700 12px var(--x-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--x-green); margin: 0 0 6px; text-shadow: 0 0 6px rgba(57, 255, 20, 0.6); }
+      .x-eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--x-green); box-shadow: 0 0 8px var(--x-green); animation: x-blink 1.4s steps(2) infinite; }
+      @keyframes x-blink { 50% { opacity: 0.25; } }
 
-    input, button {
-      padding: 1rem;
-      font-size: 1rem;
-      border-radius: 12px;
-      border: 2px solid #00ff88;
-      background: #111;
-      color: #00ff88;
-    }
+      .x-card {
+        position: relative; border-radius: var(--x-r); padding: 22px 18px 20px;
+        background: var(--x-screws), var(--x-metal);
+        border: 1px solid #000;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -2px 0 rgba(0, 0, 0, 0.6),
+          inset 1px 0 0 rgba(255, 255, 255, 0.05), inset -1px 0 0 rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(57, 255, 20, 0.2), 0 0 22px -6px rgba(57, 255, 20, 0.45), 0 20px 40px -18px #000;
+      }
+      .x-card::before {
+        content: ""; position: absolute; left: 22px; right: 22px; top: -1px; height: 2px; border-radius: 2px; pointer-events: none;
+        background: linear-gradient(90deg, transparent, var(--x-green) 18%, var(--x-lime) 50%, var(--x-green) 82%, transparent);
+        box-shadow: 0 0 10px var(--x-green), 0 0 2px var(--x-green); animation: x-edge 3.2s ease-in-out infinite;
+      }
+      @keyframes x-edge { 50% { opacity: 0.45; } }
+      .x-card[data-label] { padding-top: 44px; }
+      .x-card[data-label]::after {
+        content: attr(data-label); position: absolute; top: 12px; left: 26px; pointer-events: none;
+        font: 700 12px/1 var(--x-mono); letter-spacing: 0.22em; color: var(--x-ink3);
+        padding: 5px 8px; border-radius: 3px; background: rgba(0, 0, 0, 0.4);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .x-inset { background: #07080a; border-radius: 8px; box-shadow: var(--x-inset-sh); }
+      .x-led { font-family: var(--x-mono); color: var(--x-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.7), 0 0 1px var(--x-green); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 
-    button {
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 0 10px #00ff88;
-    }
+      .x-btn {
+        --x-d: 6px; --x-dc: #158004; --x-glow: rgba(57, 255, 20, 0.45);
+        appearance: none; border: 0; cursor: pointer; position: relative;
+        font: 800 17px/1 var(--x-font); letter-spacing: 0.08em; text-transform: uppercase; color: #052000;
+        min-height: 60px; width: 100%; border-radius: 12px; padding: 0 24px; margin-bottom: calc(var(--x-d) + 1px);
+        display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+        background: linear-gradient(180deg, #a8ff86 0%, #5dff31 16%, var(--x-green) 50%, #2bd40c 100%);
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+        box-shadow:
+          inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+          0 var(--x-d) 0 var(--x-dc), 0 calc(var(--x-d) + 1px) 0 #000, 0 14px 24px -8px var(--x-glow);
+        transition: transform 0.07s, box-shadow 0.07s, filter 0.2s;
+      }
+      .x-btn:hover { filter: brightness(1.08); }
+      .x-btn:active:not(:disabled) {
+        transform: translateY(var(--x-d));
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.3), 0 0 0 var(--x-dc), 0 1px 0 #000, 0 4px 12px -4px var(--x-glow);
+      }
+      .x-btn:focus-visible { outline: 2px solid var(--x-lime); outline-offset: 4px; }
+      .x-btn:disabled {
+        background: linear-gradient(180deg, #2d3236, #1f2326); color: var(--x-ink2); text-shadow: none; cursor: not-allowed;
+        transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 3px 0 #0c0d0f, 0 4px 0 #000;
+      }
+      .x-btn:disabled .x-spinner { border-top-color: var(--x-green) !important; }
+      .x-btn--red {
+        --x-dc: #7d0c05; --x-glow: rgba(255, 59, 48, 0.4); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+        background: linear-gradient(180deg, #ff7a70 0%, #f03a2e 18%, var(--x-red) 50%, #b8180e 100%);
+      }
+      .x-btn--grey {
+        --x-dc: #0f1113; --x-glow: rgba(0, 0, 0, 0.5); color: var(--x-ink); text-shadow: 0 1px 0 #000;
+        background: linear-gradient(180deg, #5d646c 0%, #3f454b 18%, #33383e 50%, #25292d 100%);
+      }
+      .x-btn--sm { --x-d: 4px; min-height: 44px; width: auto; font-size: 13px; letter-spacing: 0.05em; padding: 0 14px; border-radius: 10px; }
+      .x-btn--icon { padding: 0; width: 44px; }
+      .x-btn--icon svg { width: 22px; height: 22px; }
+      .x-note { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--x-ink2); margin: 0; }
+      .x-note svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--x-green); filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.6)); }
 
-    button:hover {
-      background: #00ff8840;
-    }
+      /* welcome */
+      .x-hero { text-align: center; align-items: center; padding-top: 3vh; gap: 18px; }
+      .x-core { padding: 44px 26px 24px; }
+      .x-core__well {
+        width: 176px; height: 176px; border-radius: 50%; display: grid; place-items: center;
+        background: radial-gradient(circle, #0a1a08 0%, #040604 62%, #000 100%);
+        box-shadow: var(--x-inset-sh), 0 0 0 4px #15171a, 0 0 0 5px rgba(57, 255, 20, 0.4), 0 0 24px -2px rgba(57, 255, 20, 0.45), inset 0 0 26px rgba(57, 255, 20, 0.18);
+      }
+      .x-hero .x-mark { width: 148px; height: 148px; filter: drop-shadow(0 0 14px rgba(57, 255, 20, 0.6)); }
+      .x-hero .x-mark .x-spin { transform-origin: 32px 32px; animation: x-rot 14s linear infinite; }
+      @keyframes x-rot { to { transform: rotate(360deg); } }
+      .x-word {
+        font: 900 56px/1 var(--x-head); letter-spacing: 0.02em; text-transform: uppercase; margin: 2px 0 0;
+        background: var(--x-chrome); -webkit-background-clip: text; background-clip: text; color: #dfe3e7; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 3px 0 #000) drop-shadow(0 0 14px rgba(255, 255, 255, 0.1));
+      }
+      .x-product { font: 700 12px/1.5 var(--x-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--x-green); margin: 0; text-shadow: 0 0 6px rgba(57, 255, 20, 0.6); }
+      .x-lead { font-size: 20px; max-width: 320px; margin: 0; }
+      .x-lead b { color: var(--x-green); font-family: var(--x-mono); text-shadow: 0 0 8px rgba(57, 255, 20, 0.6); }
 
-    .results {
-      background: #0a0a0a;
-      border: 2px solid #00ff88;
-      border-radius: 12px;
-      padding: 1rem;
-      min-height: 80px;
-    }
+      /* wallets */
+      .x-sheet { padding-left: 8px; padding-right: 8px; padding-bottom: 10px; }
+      .x-sheet__grip { position: absolute; top: 18px; right: 26px; width: 48px; height: 8px; margin: 0; background: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 6px); opacity: 0.8; }
+      #x-wallets { border-radius: 8px; background: #08090b; box-shadow: var(--x-inset-sh); padding: 4px; }
+      .x-wallet {
+        width: 100%; display: flex; align-items: center; gap: 14px; padding: 10px; min-height: 64px; border-radius: 6px;
+        background: none; border: 0; color: var(--x-ink); font: 600 17px var(--x-font); text-align: left; cursor: pointer; transition: background 0.2s, transform 0.1s;
+      }
+      .x-wallet + .x-wallet { box-shadow: 0 -1px 0 #000, inset 0 1px 0 rgba(255, 255, 255, 0.04); }
+      .x-wallet:hover { background: var(--x-glass); }
+      .x-wallet:active { transform: translateY(1px); }
+      .x-wallet:focus-visible { outline: 2px solid var(--x-green); outline-offset: -2px; }
+      .x-wallet small { display: block; font: 400 12px var(--x-mono); color: var(--x-ink3); margin-top: 2px; }
+      .x-wallet span:nth-child(2) { flex: 1; }
+      .x-wicon {
+        width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center; flex: none; color: var(--x-green);
+        background: var(--x-metal); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.6), 0 0 0 1px #000, 0 2px 4px rgba(0, 0, 0, 0.6);
+      }
+      .x-wicon svg { width: 24px; height: 24px; filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.6)); }
+      .x-chev { color: var(--x-green); font: 700 20px var(--x-mono); }
+      .x-spinner { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid #1b1f22; border-top-color: var(--x-green); animation: x-rot 0.7s linear infinite; flex: none; }
+      .x-connected { display: none; align-items: center; gap: 14px; }
+      .x-connected.is-on { display: flex; animation: x-in 0.5s var(--x-ease) both; }
+      .x-avatar { width: 48px; height: 48px; border-radius: 50%; background: conic-gradient(from 40deg, var(--x-green), #c9ced4, var(--x-green-d), #5b636b, var(--x-green)); box-shadow: 0 0 0 3px #000, 0 0 0 4px var(--x-green), 0 0 14px rgba(57, 255, 20, 0.5); flex: none; }
+      .x-addr { display: inline-block; font: 600 18px var(--x-mono); padding: 6px 10px; border-radius: 6px; background: var(--x-lcd); box-shadow: var(--x-inset-sh); }
+      .x-live { font: 12px var(--x-mono); letter-spacing: 0.06em; color: var(--x-green); display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+      .x-live::before { content: ""; width: 7px; height: 7px; border-radius: 9px; background: var(--x-green); box-shadow: 0 0 8px var(--x-green); }
 
-    .footer {
-      text-align: center;
-      font-size: 0.8rem;
-      opacity: 0.7;
-      margin-top: 2rem;
-    }
-  </style>
-</head>
+      /* verify */
+      .x-msg { font: 13px/1.6 var(--x-mono); color: var(--x-ink2); background: var(--x-lcd); border-radius: 8px; padding: 14px; white-space: pre-wrap; word-break: break-word; margin: 12px 0 0; box-shadow: var(--x-inset-sh); }
+      .x-msg b { color: var(--x-green); font-weight: 600; text-shadow: 0 0 6px rgba(57, 255, 20, 0.5); }
+      .x-check { width: 84px; height: 84px; margin: 4px auto 0; display: none; }
+      .x-check.is-on { display: block; }
+      .x-check circle { stroke-dasharray: 230; stroke-dashoffset: 230; animation: x-draw 0.6s var(--x-ease) forwards; }
+      .x-check path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: x-draw 0.4s 0.45s var(--x-ease) forwards; }
+      @keyframes x-draw { to { stroke-dashoffset: 0; } }
+      .x-signed { text-align: center; color: var(--x-green); font-weight: 700; margin: 0; display: none; }
+      .x-signed.is-on { display: block; animation: x-in 0.4s 0.6s var(--x-ease) both; }
 
-<body>
+      /* scan */
+      .x-scope {
+        position: relative; height: 180px; border-radius: 8px; overflow: hidden;
+        background:
+          linear-gradient(rgba(57, 255, 20, 0.09) 1px, transparent 1px) 0 0 / 100% 25%,
+          linear-gradient(90deg, rgba(57, 255, 20, 0.09) 1px, transparent 1px) 0 0 / 10% 100%,
+          radial-gradient(120% 90% at 50% 50%, #05170a, #010301);
+        box-shadow: var(--x-inset-sh), inset 0 0 34px rgba(57, 255, 20, 0.14);
+      }
+      .x-scope::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px); }
+      .x-wave { position: absolute; left: 0; top: 10px; width: 200%; height: 84px; animation: x-wave 2.4s linear infinite; overflow: visible; }
+      .x-wave path { fill: none; stroke: var(--x-green); stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px var(--x-green)); }
+      .x-wave path + path { stroke: var(--x-lime); stroke-width: 1; opacity: 0.45; }
+      @keyframes x-wave { to { transform: translateX(-50%); } }
+      .x-bars { position: absolute; left: 10px; right: 10px; bottom: 8px; height: 66px; display: flex; align-items: flex-end; gap: 3px; }
+      .x-bars i {
+        flex: 1; height: 100%; transform-origin: bottom; transform: scaleY(var(--h, 0.6));
+        background: linear-gradient(0deg, var(--x-green) 0 62%, var(--x-lime) 62% 86%, #eaffb0 86%);
+        -webkit-mask: repeating-linear-gradient(0deg, #000 0 4px, transparent 4px 6px); mask: repeating-linear-gradient(0deg, #000 0 4px, transparent 4px 6px);
+        animation: x-bar 0.6s ease-in-out infinite alternate;
+      }
+      @keyframes x-bar { from { transform: scaleY(0.1); } to { transform: scaleY(var(--h, 0.8)); } }
+      .x-scanline { text-align: center; font: 14px var(--x-mono); margin: 14px 0 0; padding: 10px; border-radius: 6px; background: var(--x-lcd); box-shadow: var(--x-inset-sh); color: var(--x-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.6); }
+      .x-listcard { padding-left: 8px; padding-right: 8px; padding-bottom: 10px; }
+      .x-list { list-style: none; margin: 0; padding: 4px; border-radius: 8px; background: #08090b; box-shadow: var(--x-inset-sh); }
+      .x-row { display: flex; align-items: center; gap: 12px; padding: 10px; min-height: 60px; border-radius: 6px; cursor: pointer; animation: x-in 0.45s var(--x-ease) both; transition: background 0.2s; }
+      .x-row:hover { background: var(--x-glass); }
+      .x-row + .x-row { box-shadow: 0 -1px 0 #000, inset 0 1px 0 rgba(255, 255, 255, 0.04); }
+      .x-row input { position: absolute; opacity: 0; pointer-events: none; }
+      .x-box { width: 26px; height: 26px; flex: none; border-radius: 5px; background: #121417; box-shadow: inset 0 2px 3px #000, 0 0 0 1px #2a2f34, 0 1px 0 rgba(255, 255, 255, 0.08); display: grid; place-items: center; transition: all 0.2s var(--x-ease); }
+      .x-box svg { width: 16px; height: 16px; opacity: 0; transform: scale(0.4); transition: all 0.2s var(--x-ease); }
+      .x-row input:checked + .x-box { background: var(--x-green); box-shadow: 0 0 12px rgba(57, 255, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 0 1px #0b3d02; }
+      .x-row input:checked + .x-box svg { opacity: 1; transform: none; }
+      .x-row input:focus-visible + .x-box { outline: 2px solid var(--x-lime); outline-offset: 2px; }
+      .x-tok {
+        width: 38px; height: 38px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 700 12px var(--x-mono); color: var(--x-green);
+        background: radial-gradient(circle at 35% 30%, #5a6168, #2a2e33 55%, #16181b); text-shadow: 0 0 5px rgba(57, 255, 20, 0.7);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 1px #000, 0 0 0 3px #23272b, 0 0 0 4px #000;
+      }
+      .x-tok--haz { color: var(--x-haz); text-shadow: none; background: repeating-linear-gradient(-45deg, #2a1d00 0 4px, #120c00 4px 8px); box-shadow: 0 0 0 2px var(--x-haz), 0 0 0 3px #000; }
+      .x-meta { flex: 1; min-width: 0; }
+      .x-meta b { display: block; font-weight: 600; }
+      .x-meta small { color: var(--x-ink3); font: 12px var(--x-mono); }
+      .x-usd { font: 600 15px var(--x-mono); padding: 5px 7px; border-radius: 5px; background: var(--x-lcd); box-shadow: var(--x-inset-sh); }
+      .x-row.is-spam {
+        cursor: default; padding-left: 16px;
+        background: repeating-linear-gradient(-45deg, var(--x-haz) 0 5px, #111 5px 10px) left / 6px 100% no-repeat, linear-gradient(90deg, rgba(255, 176, 0, 0.08), transparent 70%);
+      }
+      .x-row.is-spam:hover { background: repeating-linear-gradient(-45deg, var(--x-haz) 0 5px, #111 5px 10px) left / 6px 100% no-repeat, linear-gradient(90deg, rgba(255, 176, 0, 0.08), transparent 70%); }
+      .x-row.is-spam .x-box { opacity: 0.4; }
+      .x-row.is-spam .x-meta b { color: var(--x-ink2); text-decoration: line-through; text-decoration-color: rgba(255, 176, 0, 0.6); }
+      .x-warn {
+        display: inline-block; max-width: 132px; font: 700 12px/1.3 var(--x-mono); color: #ffc341; text-align: left;
+        background: repeating-linear-gradient(-45deg, var(--x-haz) 0 4px, #000 4px 8px) left / 8px 100% no-repeat, #140d00;
+        border: 1px solid var(--x-haz); padding: 4px 8px 4px 15px; border-radius: 4px; box-shadow: 0 0 10px -2px rgba(255, 176, 0, 0.4);
+      }
+      .x-spamhead { font: 700 12px var(--x-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--x-haz); margin: 12px 10px 4px; }
+      .x-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .x-totals div { background: var(--x-lcd); border-radius: 8px; padding: 12px; box-shadow: var(--x-inset-sh); min-width: 0; }
+      .x-totals span { display: block; font: 700 12px var(--x-mono); color: var(--x-ink3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+      .x-totals strong { display: block; font: 700 22px/1.15 var(--x-mono); color: var(--x-green); text-shadow: 0 0 8px rgba(57, 255, 20, 0.7), 0 0 1px var(--x-green); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+      .x-totals div:last-child strong { color: var(--x-lime); }
+      .x-hidden { display: none !important; }
 
-  <header>Racer.X Defender</header>
+      /* success */
+      .x-win { text-align: center; align-items: center; }
+      .x-win .x-mark { width: 120px; height: 120px; filter: drop-shadow(0 0 26px rgba(57, 255, 20, 0.7)); animation: x-pop 0.7s var(--x-ease) both; }
+      @keyframes x-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+      .x-amount {
+        font: 700 clamp(26px, 8.6vw, 40px)/1.1 var(--x-mono); letter-spacing: 0.02em; margin: 0; padding: 12px 18px; border-radius: 10px; max-width: 100%;
+        color: var(--x-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.8), 0 0 2px var(--x-green); font-variant-numeric: tabular-nums;
+        background: var(--x-lcd); box-shadow: var(--x-inset-sh), 0 0 0 4px #15171a, 0 0 0 5px rgba(57, 255, 20, 0.35), 0 0 22px -4px rgba(57, 255, 20, 0.5);
+      }
+      .x-token { width: 100%; text-align: left; }
+      .x-token__head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; position: relative; }
+      .x-token__head .x-name-sym { font-family: var(--x-head); background: var(--x-chrome); -webkit-background-clip: text; background-clip: text; color: #dfe3e7; -webkit-text-fill-color: transparent; }
+      .x-coin {
+        width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center;
+        background: radial-gradient(circle at 35% 30%, #6a7178, #2a2e33 55%, #111316);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 2px #000, 0 0 0 4px #2a2e33, 0 0 0 5px rgba(57, 255, 20, 0.5), 0 0 18px -2px rgba(57, 255, 20, 0.55);
+      }
+      .x-coin svg { width: 38px; height: 38px; filter: drop-shadow(0 0 5px rgba(57, 255, 20, 0.7)); }
+      .x-token dl { margin: 0 0 18px; display: grid; grid-template-columns: auto 1fr; gap: 0; font-size: 14px; position: relative; border-radius: 8px; background: #08090b; box-shadow: var(--x-inset-sh); padding: 4px 12px; }
+      .x-token dt, .x-token dd { padding: 9px 0; }
+      .x-token dt:not(:first-of-type), .x-token dd:not(:first-of-type) { box-shadow: 0 -1px 0 #000, inset 0 1px 0 rgba(255, 255, 255, 0.04); }
+      .x-token dt { color: var(--x-ink3); font: 700 12px/1.6 var(--x-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+      .x-token dd { margin: 0; text-align: right; font-weight: 600; }
+      #x-bal { font-family: var(--x-mono); color: var(--x-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.7); font-size: 16px; }
+      .x-badge { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--x-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: 4px; background: #031103; color: var(--x-green); border: 1px solid rgba(57, 255, 20, 0.5); box-shadow: 0 0 10px -2px rgba(57, 255, 20, 0.5); text-shadow: 0 0 5px rgba(57, 255, 20, 0.6); }
+      .x-signed { text-shadow: 0 0 8px rgba(57, 255, 20, 0.7); font-family: var(--x-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
-  <div class="container">
-    <input id="wallet" placeholder="Enter Wallet Address (0x...)" />
+      .x-pill {
+        position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
+        font: 12px var(--x-mono); color: var(--x-ink2); white-space: nowrap; padding: 8px 14px; border-radius: 6px;
+        background: var(--x-metal); border: 1px solid #000;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(57, 255, 20, 0.2), 0 8px 20px -6px #000;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .x-pill::before { content: ""; width: 7px; height: 7px; border-radius: 9px; background: var(--x-green); box-shadow: 0 0 8px var(--x-green); animation: x-blink 1.4s steps(2) infinite; }
+      .x-toast {
+        position: fixed; left: 50%; bottom: 70px; z-index: 40; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+        background: var(--x-lcd); color: var(--x-green); font: 700 14px var(--x-mono); letter-spacing: 0.04em; padding: 12px 18px; border-radius: 8px;
+        border: 1px solid rgba(57, 255, 20, 0.6); text-shadow: 0 0 6px rgba(57, 255, 20, 0.7);
+        box-shadow: 0 0 20px -4px rgba(57, 255, 20, 0.5), 0 12px 30px -8px #000;
+        transition: all 0.35s var(--x-ease); white-space: nowrap;
+      }
+      .x-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+      @media (min-width: 720px) { .x-app { padding-top: 32px; } h1 { font-size: 40px; } }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="x-dust" aria-hidden="true"></canvas>
+    <div class="x-grain" aria-hidden="true"></div>
 
-    <button onclick="scanWallet()">SCAN WALLET</button>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="x-g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#d4ff7a" />
+          <stop offset="0.5" stop-color="#39ff14" />
+          <stop offset="1" stop-color="#14b83a" />
+        </linearGradient>
+        <symbol id="x-logo" viewBox="0 0 64 64">
+          <g class="x-spin" fill="url(#x-g)" stroke="url(#x-g)">
+            <g fill="none" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="0 5.2">
+              <path d="M35.3 13.29 A19 19 0 0 1 50.58 35.95" />
+              <path d="M46.55 44.21 A19 19 0 0 1 19.29 46.12" />
+              <path d="M14.15 38.5 A19 19 0 0 1 26.13 13.93" />
+            </g>
+            <g stroke="none">
+              <circle cx="45.2" cy="34.81" r="1.8" /><circle cx="49.08" cy="40.33" r="2.1" /><circle cx="55.96" cy="37.09" r="1.8" /><circle cx="50.1" cy="37.4" r="1.3" />
+              <circle cx="22.97" cy="42.03" r="1.8" /><circle cx="16.25" cy="42.62" r="2.1" /><circle cx="15.61" cy="50.21" r="1.8" /><circle cx="18.3" cy="45" r="1.3" />
+              <circle cx="27.83" cy="19.16" r="1.8" /><circle cx="30.67" cy="13.05" r="2.1" /><circle cx="24.43" cy="8.7" r="1.8" /><circle cx="27.6" cy="13.6" r="1.3" />
+            </g>
+            <g stroke="none" opacity="0.55">
+              <circle cx="32" cy="32" r="1.6" /><circle cx="38" cy="28" r="0.9" /><circle cx="27" cy="35" r="0.9" /><circle cx="33" cy="38" r="0.7" /><circle cx="29" cy="27" r="0.7" />
+            </g>
+          </g>
+        </symbol>
+        <symbol id="x-tick" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="#06210f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="x-shield" viewBox="0 0 20 20"><path d="M10 2l6.5 2.5v5c0 4-2.8 7-6.5 8.5C6.3 16.5 3.5 13.5 3.5 9.5v-5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="M7 10l2.2 2.2L13.3 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      </defs>
+    </svg>
 
-    <div id="results" class="results">
-      Status: Waiting for scan...
+    <div class="x-app">
+      <header class="x-top">
+        <div class="x-brand"><svg aria-hidden="true"><use href="#x-logo" /></svg>dusty</div>
+        <div class="x-top-r">
+          <button class="x-btn x-btn--grey x-btn--sm x-btn--icon" id="x-settings" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+          </button>
+          <button class="x-btn x-btn--red x-btn--sm" id="x-restart" type="button">Restart demo</button>
+        </div>
+      </header>
+      <div class="x-dots" id="x-dots" role="progressbar" aria-label="Onboarding step" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i></i><i></i><i></i><i></i></div>
+
+      <main class="x-stage">
+        <!-- 1 Welcome -->
+        <section class="x-screen x-hero is-on" data-step="1" aria-label="Welcome">
+          <div class="x-card x-core" data-label="CORE">
+            <div class="x-core__well"><svg class="x-mark" aria-hidden="true"><use href="#x-logo" /></svg></div>
+          </div>
+          <p class="x-word">dusty</p>
+          <p class="x-product">Dust Recycler · Turn wallet dust into something</p>
+          <p class="x-lead">Sweep the tiny leftovers in your wallet into <b class="x-tick-sym">$DUSTY</b>.</p>
+          <button class="x-btn" type="button" data-go="2" style="margin-top: 12px">Connect wallet</button>
+        </section>
+
+        <!-- 2 Connect -->
+        <section class="x-screen" data-step="2" aria-label="Connect wallet">
+          <div>
+            <p class="x-eyebrow">Step 2 of 4</p>
+            <h2>Connect your wallet</h2>
+          </div>
+          <div class="x-card x-sheet" id="x-sheet" data-label="WALLET LINK">
+            <div class="x-sheet__grip"></div>
+            <div id="x-wallets"></div>
+          </div>
+          <div class="x-card x-connected" id="x-connected" data-label="WALLET LINK">
+            <div class="x-avatar"></div>
+            <div style="flex: 1">
+              <div class="x-addr x-led">0xA1b2…9F3c</div>
+              <div class="x-live" id="x-via">Connected</div>
+            </div>
+          </div>
+          <p class="x-note"><svg><use href="#x-shield" /></svg>We'll never ask for your seed phrase or private key.</p>
+          <button class="x-btn x-hidden" type="button" id="x-to3" data-go="3">Continue</button>
+        </section>
+
+        <!-- 3 Verify -->
+        <section class="x-screen" data-step="3" aria-label="Verify">
+          <div>
+            <p class="x-eyebrow">Step 3 of 4</p>
+            <h2>Sign to prove it's you</h2>
+          </div>
+          <div class="x-card" data-label="AUTH">
+            <p class="x-sub" style="font-size: 14px">Your wallet will show this message:</p>
+            <pre class="x-msg" id="x-siwe"></pre>
+            <svg class="x-check" id="x-check" viewBox="0 0 84 84" aria-hidden="true" style="filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.7))">
+              <circle cx="42" cy="42" r="36" fill="rgba(57,255,20,.08)" stroke="#39ff14" stroke-width="3" />
+              <path d="M27 43l10 10 20-21" fill="none" stroke="#39ff14" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <p class="x-signed" id="x-signed">Signature verified</p>
+          </div>
+          <p class="x-note"><svg><use href="#x-shield" /></svg>Signing is free and doesn't move any funds.</p>
+          <button class="x-btn" type="button" id="x-sign">Sign message</button>
+        </section>
+
+        <!-- 4 Scan -->
+        <section class="x-screen" data-step="4" aria-label="Dust scan">
+          <div>
+            <p class="x-eyebrow">Step 4 of 4</p>
+            <h2 id="x-scan-title">Scanning for dust…</h2>
+          </div>
+          <div id="x-scanning" class="x-card" data-label="DUST SCAN">
+            <div class="x-scope" aria-hidden="true">
+              <svg class="x-wave" viewBox="0 0 800 100" preserveAspectRatio="none"><path id="x-wave1" /><path id="x-wave2" /></svg>
+              <div class="x-bars" id="x-bars"></div>
+            </div>
+            <p class="x-scanline" id="x-scanline">Reading balances on 0xA1b2…9F3c</p>
+          </div>
+          <div id="x-results" class="x-hidden" style="display: flex; flex-direction: column; gap: 14px">
+            <div class="x-card x-listcard" data-label="DUST SCAN"><ul class="x-list" id="x-list"></ul></div>
+            <div class="x-card" data-label="OUTPUT">
+              <div class="x-totals">
+                <div><span>Selected dust</span><strong id="x-usd">$0.00</strong></div>
+                <div><span>You'll receive ≈</span><strong id="x-out">0</strong></div>
+              </div>
+            </div>
+            <p class="x-note" style="font-size: 13px">Demo rate: 1,000 <span class="x-tick-sym">$DUSTY</span> per $1 of dust.</p>
+            <button class="x-btn x-btn--green" type="button" id="x-recycle">♻ Recycle dust</button>
+          </div>
+        </section>
+
+        <!-- 5 Success -->
+        <section class="x-screen x-win" data-step="5" aria-label="Done">
+          <svg class="x-mark" id="x-winmark" aria-hidden="true"><use href="#x-logo" /></svg>
+          <p class="x-amount" id="x-amount">+2,890 $DUSTY</p>
+          <p class="x-sub" style="margin-top: -8px">received · your dust is recycled</p>
+          <div class="x-card x-token" data-label="OUTPUT">
+            <div class="x-token__head">
+              <div class="x-coin"><svg aria-hidden="true"><use href="#x-logo" /></svg></div>
+              <div style="flex: 1">
+                <div style="font-weight: 700; font-size: 20px" class="x-name-sym">Dusty</div>
+                <div style="color: var(--x-ink2); font: 14px var(--x-mono)" class="x-tick-sym">$DUSTY</div>
+              </div>
+              <span class="x-badge">♻ Recycled</span>
+            </div>
+            <dl>
+              <dt>Name</dt><dd class="x-name-sym">Dusty</dd>
+              <dt>Ticker</dt><dd class="x-tick-raw">DUSTY</dd>
+              <dt>Network</dt><dd>Base Sepolia (testnet)</dd>
+              <dt>Balance</dt><dd id="x-bal">2,890</dd>
+            </dl>
+            <button class="x-btn" type="button" id="x-add">Add to wallet</button>
+          </div>
+          <button class="x-btn x-btn--red" type="button" id="x-again">Restart demo</button>
+        </section>
+      </main>
     </div>
-  </div>
 
-  <div class="footer">
-    Web3 Security Scanner · Frontend Demo
-  </div>
+    <canvas id="x-fx" aria-hidden="true"></canvas>
+    <div class="x-pill">Testnet prototype · demo data · no real transactions</div>
+    <div class="x-toast" id="x-toast" role="status" aria-live="polite"></div>
 
-  <script>
-    function scanWallet() {
-      const wallet = document.getElementById("wallet").value.trim();
-      const results = document.getElementById("results");
+    <script>
+      // Rename the token here
+      const TOKEN_TICKER = "DUSTY";
+      const TOKEN_NAME = "Dusty";
+      const RATE = 1000; // TOKEN per $1, demo
+      const ADDRESS = "0xA1b2…9F3c";
+      const FULL_ADDRESS = "0xA1b2c3D4e5F60718293a4B5c6D7e8F90a1B29F3c";
 
-      if (!wallet || !wallet.startsWith("0x")) {
-        results.innerHTML = "❌ Invalid wallet address.";
-        return;
+      const $ = (s) => document.querySelector(s);
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.querySelectorAll(".x-tick-sym").forEach((e) => (e.textContent = "$" + TOKEN_TICKER));
+      document.querySelectorAll(".x-tick-raw").forEach((e) => (e.textContent = TOKEN_TICKER));
+      document.querySelectorAll(".x-name-sym").forEach((e) => (e.textContent = TOKEN_NAME));
+
+      /* ---------- drifting dust ---------- */
+      const dust = $("#x-dust"), dctx = dust.getContext("2d");
+      let W = 0, H = 0, DPR = 1, motes = [];
+      const COLORS = ["57,255,20", "182,255,59", "110,255,140", "210,255,200"];
+      function resize() {
+        DPR = Math.min(devicePixelRatio || 1, 2);
+        W = innerWidth; H = innerHeight;
+        [dust, fx].forEach((c) => { c.width = W * DPR; c.height = H * DPR; c.getContext("2d").setTransform(DPR, 0, 0, DPR, 0, 0); });
+        const n = Math.round(Math.min(140, (W * H) / 9000));
+        motes = Array.from({ length: n }, () => ({
+          x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.6 + 0.3,
+          vx: (Math.random() - 0.5) * 0.15, vy: -Math.random() * 0.25 - 0.04,
+          p: Math.random() * 6.28, c: COLORS[Math.random() < 0.55 ? 0 : Math.floor(Math.random() * 4)], a: Math.random() * 0.6 + 0.2,
+        }));
+      }
+      function drawDust(t) {
+        dctx.clearRect(0, 0, W, H);
+        for (const m of motes) {
+          if (!reduce) { m.x += m.vx + Math.sin(t / 3000 + m.p) * 0.12; m.y += m.vy; }
+          if (m.y < -5) { m.y = H + 5; m.x = Math.random() * W; }
+          if (m.x < -5) m.x = W + 5; if (m.x > W + 5) m.x = -5;
+          const tw = 0.6 + 0.4 * Math.sin(t / 700 + m.p * 3);
+          dctx.beginPath();
+          dctx.fillStyle = `rgba(${m.c},${m.a * tw})`;
+          dctx.shadowColor = `rgba(${m.c},0.8)`; dctx.shadowBlur = m.r * 4;
+          dctx.arc(m.x, m.y, m.r, 0, 6.283); dctx.fill();
+        }
+        requestAnimationFrame(drawDust);
+      }
+      const fx = $("#x-fx"), fctx = fx.getContext("2d");
+      addEventListener("resize", resize);
+      resize(); requestAnimationFrame(drawDust);
+
+      /* ---------- steps ---------- */
+      let step = 1;
+      function go(n) {
+        step = n;
+        document.querySelectorAll(".x-screen").forEach((s) => s.classList.toggle("is-on", +s.dataset.step === n));
+        document.querySelectorAll("#x-dots i").forEach((d, i) => {
+          d.className = i + 1 === n ? "on" : i + 1 < n ? "done" : "";
+        });
+        $("#x-dots").setAttribute("aria-valuenow", Math.min(n, 4));
+        scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+        if (n === 3) prepSign();
+        if (n === 4) startScan();
+      }
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-go]");
+        if (b) go(+b.dataset.go);
+      });
+
+      /* ---------- wallets ---------- */
+      const WALLETS = [
+        { name: "MetaMask", note: "Browser & mobile", icon: '<path d="M4 6l8 4 8-4-2 11-6 3-6-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/>' },
+        { name: "Coinbase Wallet", note: "Mobile app", icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor"/>' },
+        { name: "Rabby", note: "Browser extension", icon: '<ellipse cx="12" cy="14" rx="7" ry="5" fill="currentColor"/><ellipse cx="9" cy="6.5" rx="1.6" ry="4" fill="currentColor"/><ellipse cx="14.5" cy="6.5" rx="1.6" ry="4" fill="currentColor"/>' },
+        { name: "Trust Wallet", note: "Mobile app", icon: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>' },
+        { name: "WalletConnect", note: "Any wallet, scan a QR", icon: '<path d="M5 10c4-4 10-4 14 0M8 13c2.2-2 5.8-2 8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.6" fill="currentColor"/>' },
+      ];
+      $("#x-wallets").innerHTML = WALLETS.map((w, i) =>
+        `<button class="x-wallet" type="button" data-w="${i}"><span class="x-wicon"><svg viewBox="0 0 24 24">${w.icon}</svg></span><span>${w.name}<small>${w.note}</small></span><span class="x-chev">›</span></button>`
+      ).join("");
+      let connecting = false, connectT;
+      $("#x-wallets").addEventListener("click", (e) => {
+        const b = e.target.closest(".x-wallet");
+        if (!b) return;
+        // switching wallets mid-connect: cancel the previous attempt
+        clearTimeout(connectT);
+        $("#x-wallets").querySelectorAll(".x-wallet").forEach((o, i) => {
+          const sp = o.querySelector(".x-spinner");
+          if (sp) sp.outerHTML = '<span class="x-chev">›</span>';
+          o.querySelector("small").textContent = WALLETS[i].note;
+          o.style.background = "";
+        });
+        connecting = true;
+        b.style.background = "var(--x-glass2)";
+        const w = WALLETS[+b.dataset.w];
+        b.querySelector(".x-chev").outerHTML = '<span class="x-spinner" aria-label="Connecting"></span>';
+        b.querySelector("small").textContent = "Approve in your wallet…";
+        connectT = setTimeout(() => {
+          $("#x-sheet").classList.add("x-hidden");
+          $("#x-via").textContent = "Connected via " + w.name;
+          $("#x-connected").classList.add("is-on");
+          $("#x-to3").classList.remove("x-hidden");
+          toast("Wallet connected (demo)");
+        }, reduce ? 300 : 1300);
+      });
+      function resetWallets() {
+        connecting = false;
+        clearTimeout(connectT);
+        $("#x-wallets").querySelectorAll(".x-wallet").forEach((b, i) => {
+          b.style.background = "";
+          const sp = b.querySelector(".x-spinner");
+          if (sp) sp.outerHTML = '<span class="x-chev">›</span>';
+          b.querySelector("small").textContent = WALLETS[i].note;
+        });
+        $("#x-sheet").classList.remove("x-hidden");
+        $("#x-connected").classList.remove("is-on");
+        $("#x-to3").classList.add("x-hidden");
       }
 
-      results.innerHTML = `
-        ✅ Wallet format valid<br><br>
-        Ethereum: Ready<br>
-        BSC: Ready<br>
-        Polygon: Ready<br><br>
-        (Live data will be enabled via backend)
-      `;
-    }
-  </script>
+      /* ---------- sign ---------- */
+      let signed = false;
+      function prepSign() {
+        if (signed) return;
+        const nonce = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+        $("#x-siwe").innerHTML =
+          `<b>dusty.app</b> wants you to sign in with your Ethereum account:\n${FULL_ADDRESS}\n\n<b>Sign in to Dusty</b>\n\nURI: https://dusty.app\nVersion: 1\nChain ID: 84532\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
+      }
+      $("#x-sign").addEventListener("click", () => {
+        const b = $("#x-sign");
+        if (signed) return go(4);
+        b.disabled = true;
+        b.innerHTML = '<span class="x-spinner" style="border-top-color:#1a0f05"></span> Waiting for wallet…';
+        setTimeout(() => {
+          signed = true;
+          $("#x-siwe").style.display = "none";
+          $("#x-check").classList.remove("is-on"); void $("#x-check").offsetWidth;
+          $("#x-check").classList.add("is-on");
+          $("#x-signed").classList.add("is-on");
+          b.disabled = false;
+          b.textContent = "Continue to dust scan";
+        }, reduce ? 300 : 1400);
+      });
 
-</body>
+      /* ---------- scan ---------- */
+      const TOKENS = [
+        { sym: "ETH", amt: "0.00031", usd: 0.98, bg: "#c9c3ff", chain: "Base Sepolia" },
+        { sym: "USDC.e", amt: "0.41", usd: 0.41, bg: "#8fc2ff", chain: "Bridged USDC" },
+        { sym: "RING", amt: "5,128", usd: 0.72, bg: "#ffb38a", chain: "Airdrop leftover" },
+        { sym: "cbETH", amt: "0.0000043", usd: 0.01, bg: "#9fb4ff", chain: "Staked ETH" },
+        { sym: "GHO", amt: "12.9", usd: 0.15, bg: "#b6f0c6", chain: "Stablecoin" },
+        { sym: "PEPE", amt: "88,000", usd: 0.62, bg: "#9fe08c", chain: "Meme token" },
+      ];
+      const SPAM = [
+        { sym: "Fake stETH", amt: "1,000", note: "Impersonates Lido stETH" },
+        { sym: "Claim-reward.xyz", amt: "7,777", note: "Phishing link in name" },
+      ];
+      const tickSvg = '<svg><use href="#x-tick"/></svg>';
+      function renderList() {
+        let html = TOKENS.map((t, i) =>
+          `<li class="x-row" style="animation-delay:${i * 70}ms"><label style="display:contents"><input type="checkbox" data-i="${i}" checked><span class="x-box">${tickSvg}</span><span class="x-tok">${t.sym.slice(0, 2)}</span><span class="x-meta"><b><span class="x-led">${t.amt}</span> ${t.sym}</b><small>${t.chain}</small></span><span class="x-usd x-led">$${t.usd.toFixed(2)}</span></label></li>`
+        ).join("");
+        html += `<li class="x-spamhead" style="list-style:none">Skipped for your safety</li>`;
+        html += SPAM.map((t, i) =>
+          `<li class="x-row is-spam" style="animation-delay:${(TOKENS.length + i) * 70}ms" aria-disabled="true"><span class="x-box"></span><span class="x-tok x-tok--haz">⚠</span><span class="x-meta"><b>${t.amt} ${t.sym}</b><small>${t.note}</small></span><span class="x-warn">⚠ Suspicious / spam token, skipped</span></li>`
+        ).join("");
+        $("#x-list").innerHTML = html;
+        updateTotals();
+      }
+      function selectedCents() {
+        let c = 0;
+        document.querySelectorAll("#x-list input:checked").forEach((el) => (c += Math.round(TOKENS[+el.dataset.i].usd * 100)));
+        return c;
+      }
+      const fmt = (n) => n.toLocaleString("en-US");
+      function updateTotals() {
+        const c = selectedCents();
+        $("#x-usd").textContent = "$" + (c / 100).toFixed(2);
+        $("#x-out").textContent = fmt(Math.round((c / 100) * RATE)) + " " + TOKEN_TICKER;
+        $("#x-recycle").disabled = c === 0;
+      }
+      $("#x-list").addEventListener("change", updateTotals);
+
+      /* oscilloscope: a periodic waveform (loops at x=400) and LED bar graph */
+      (function scope() {
+        const wave = (amp, ph) => {
+          let d = "";
+          for (let x = 0; x <= 800; x += 4) {
+            const a = (x / 400) * Math.PI * 2;
+            const y = 50 + amp * (Math.sin(a * 3 + ph) * 0.6 + Math.sin(a * 7 + ph * 2) * 0.28 + Math.sin(a * 13) * 0.12);
+            d += (x ? "L" : "M") + x + " " + y.toFixed(1);
+          }
+          return d;
+        };
+        $("#x-wave1").setAttribute("d", wave(40, 0));
+        $("#x-wave2").setAttribute("d", wave(26, 1.7));
+        $("#x-bars").innerHTML = Array.from({ length: 24 }, (_, i) => {
+          const h = (0.35 + 0.6 * Math.abs(Math.sin(i * 1.7 + 0.4))).toFixed(2);
+          const dur = (0.35 + ((i * 37) % 9) / 20).toFixed(2);
+          return `<i style="--h:${h};animation-duration:${dur}s;animation-delay:-${((i * 53) % 10) / 20}s"></i>`;
+        }).join("");
+      })();
+
+      let scanTimer = [];
+      function startScan() {
+        scanTimer.forEach(clearTimeout); scanTimer = [];
+        $("#x-scanning").classList.remove("x-hidden");
+        $("#x-results").classList.add("x-hidden");
+        $("#x-scan-title").textContent = "Scanning for dust…";
+        const lines = [`Reading balances on ${ADDRESS}`, "Checking 214 token contracts…", "Pricing tiny balances…", "Filtering spam & phishing tokens…"];
+        lines.forEach((l, i) => scanTimer.push(setTimeout(() => ($("#x-scanline").textContent = l), i * 700)));
+        scanTimer.push(setTimeout(() => {
+          $("#x-scanning").classList.add("x-hidden");
+          $("#x-results").classList.remove("x-hidden");
+          $("#x-scan-title").textContent = `Found ${TOKENS.length} bits of dust`;
+          renderList();
+        }, reduce ? 400 : 2900));
+      }
+
+      /* ---------- recycle: particle implode ---------- */
+      let busy = false;
+      $("#x-recycle").addEventListener("click", () => {
+        if (busy) return;
+        const cents = selectedCents();
+        if (!cents) return;
+        busy = true;
+        const received = Math.round((cents / 100) * RATE);
+        const rows = [...document.querySelectorAll("#x-list input:checked")].map((el) => el.closest(".x-row"));
+        const tx = W / 2, ty = Math.min(H * 0.32, 260);
+        const parts = [];
+        rows.forEach((row) => {
+          const r = row.getBoundingClientRect();
+          row.style.transition = "opacity .4s, transform .4s, filter .4s";
+          row.style.opacity = "0"; row.style.transform = "scale(.9)"; row.style.filter = "blur(3px)";
+          for (let k = 0; k < 46; k++) {
+            const x = r.left + Math.random() * r.width, y = r.top + Math.random() * r.height;
+            const ang = Math.random() * 6.283, sp = Math.random() * 2.5 + 0.5;
+            parts.push({ x0: x, y0: y, x, y, bx: Math.cos(ang) * sp * 18, by: Math.sin(ang) * sp * 18, sw: (Math.random() - 0.5) * 3, r: Math.random() * 2 + 0.6, c: COLORS[Math.floor(Math.random() * 3)], d: Math.random() * 250 });
+          }
+        });
+        const T = reduce ? 200 : 1700;
+        const start = performance.now();
+        function frame(now) {
+          const t = now - start;
+          fctx.clearRect(0, 0, W, H);
+          // gathering glow
+          const g = Math.min(1, t / T);
+          const grad = fctx.createRadialGradient(tx, ty, 0, tx, ty, 40 + 80 * g);
+          grad.addColorStop(0, `rgba(57,255,20,${0.5 * g})`); grad.addColorStop(1, "rgba(57,255,20,0)");
+          fctx.fillStyle = grad; fctx.fillRect(0, 0, W, H);
+          for (const p of parts) {
+            const u = Math.max(0, Math.min(1, (t - p.d) / (T - 250)));
+            const burst = Math.sin(Math.min(u * 3, 1) * Math.PI) * (1 - u);
+            const e = u * u * u;
+            const ang = p.sw * e * 3;
+            let dx = p.x0 + p.bx * burst - tx, dy = p.y0 + p.by * burst - ty;
+            const ca = Math.cos(ang), sa = Math.sin(ang);
+            const k = 1 - e;
+            p.x = tx + (dx * ca - dy * sa) * k; p.y = ty + (dx * sa + dy * ca) * k;
+            fctx.beginPath();
+            fctx.fillStyle = `rgba(${p.c},${0.9 - 0.4 * e})`;
+            fctx.shadowColor = `rgba(${p.c},1)`; fctx.shadowBlur = 6;
+            fctx.arc(p.x, p.y, p.r * (1 - 0.5 * e), 0, 6.283); fctx.fill();
+          }
+          fctx.shadowBlur = 0;
+          if (t < T) return requestAnimationFrame(frame);
+          // flash ring
+          const fs = performance.now();
+          (function ring(n) {
+            const v = (n - fs) / 450;
+            fctx.clearRect(0, 0, W, H);
+            if (v >= 1) return;
+            fctx.beginPath(); fctx.strokeStyle = `rgba(57,255,20,${1 - v})`; fctx.lineWidth = 3 * (1 - v) + 0.5;
+            fctx.arc(tx, ty, 10 + v * 140, 0, 6.283); fctx.stroke();
+            requestAnimationFrame(ring);
+          })(fs);
+          $("#x-amount").textContent = "+" + fmt(received) + " $" + TOKEN_TICKER;
+          $("#x-bal").textContent = fmt(received);
+          const m = $("#x-winmark"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
+          busy = false;
+          go(5);
+        }
+        requestAnimationFrame(frame);
+      });
+
+      /* ---------- token + toast ---------- */
+      let toastT;
+      function toast(msg) {
+        const t = $("#x-toast");
+        t.textContent = msg; t.classList.add("is-on");
+        clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("is-on"), 2200);
+      }
+      $("#x-add").addEventListener("click", () => {
+        $("#x-add").textContent = "✓ Added";
+        toast("Added to wallet (demo)");
+      });
+
+      /* ---------- restart ---------- */
+      function restart() {
+        scanTimer.forEach(clearTimeout);
+        resetWallets();
+        signed = false;
+        $("#x-siwe").style.display = "";
+        $("#x-check").classList.remove("is-on");
+        $("#x-signed").classList.remove("is-on");
+        $("#x-sign").disabled = false;
+        $("#x-sign").textContent = "Sign message";
+        $("#x-add").textContent = "Add to wallet";
+        fctx.clearRect(0, 0, W, H);
+        go(1);
+      }
+      $("#x-restart").addEventListener("click", restart);
+      $("#x-again").addEventListener("click", restart);
+      $("#x-settings").addEventListener("click", () => toast("Settings are locked in this demo"));
+      go(1);
+    </script>
+  </body>
 </html>
