@@ -4,7 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#060708" />
-    <title>Dusty Web Prototype</title>
+    <title>Dusty · Dust Recycler</title>
+    <meta name="description" content="Dusty: sweep wallet dust into $DUSTY. Testnet prototype." />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dusty" />
     <style>
       :root {
         --x-bg: #060708;
@@ -278,6 +286,24 @@
       .x-totals strong { display: block; font: 700 22px/1.15 var(--x-mono); color: var(--x-green); text-shadow: 0 0 8px rgba(57, 255, 20, 0.7), 0 0 1px var(--x-green); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
       .x-totals div:last-child strong { color: var(--x-lime); }
       .x-hidden { display: none !important; }
+      .x-wicon img { width: 28px; height: 28px; border-radius: 6px; }
+      .x-nowallet { padding: 12px 6px 4px; display: flex; flex-direction: column; gap: 10px; }
+      .x-nowallet p { margin: 0; font-size: 14px; color: var(--x-ink2); }
+      .x-links { display: grid; gap: 6px; }
+      .x-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 52px; padding: 0 12px; border-radius: 6px; background: #0c0e10; color: var(--x-ink); text-decoration: none; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px #000; }
+      .x-link:hover { background: var(--x-glass); }
+      .x-link:focus-visible { outline: 2px solid var(--x-green); outline-offset: 2px; }
+      .x-err { color: #ff8a80; font: 13px/1.5 var(--x-mono); margin: 0; }
+      .x-row.is-off { cursor: default; }
+      .x-row.is-off:hover { background: none; }
+      .x-row.is-off .x-box { opacity: 0.25; }
+      .x-row.is-off .x-usd { color: var(--x-ink3); text-shadow: none; }
+      .x-grouphead { list-style: none; font: 700 12px var(--x-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--x-ink3); margin: 12px 10px 4px; }
+      .x-grouphead--warn { color: var(--x-haz); }
+      .x-empty { list-style: none; text-align: center; padding: 16px 10px; color: var(--x-ink2); font-size: 14px; }
+      .x-empty:empty { display: none; }
+      .x-sigline { text-align: center; font: 12px var(--x-mono); color: var(--x-ink3); margin: 6px 0 0; word-break: break-all; }
+      .x-demotag { display: inline-block; font: 700 11px var(--x-mono); letter-spacing: 0.12em; color: var(--x-haz); border: 1px solid var(--x-haz); border-radius: 3px; padding: 2px 6px; margin-left: 6px; vertical-align: middle; -webkit-text-fill-color: var(--x-haz); }
 
       /* success */
       .x-win { text-align: center; align-items: center; }
@@ -365,10 +391,11 @@
       <header class="x-top">
         <div class="x-brand"><svg aria-hidden="true"><use href="#x-logo" /></svg>dusty</div>
         <div class="x-top-r">
+          <button class="x-btn x-btn--sm x-hidden" id="x-install" type="button">Install</button>
           <button class="x-btn x-btn--grey x-btn--sm x-btn--icon" id="x-settings" type="button" aria-label="Settings" title="Settings">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
           </button>
-          <button class="x-btn x-btn--red x-btn--sm" id="x-restart" type="button">Restart demo</button>
+          <button class="x-btn x-btn--red x-btn--sm" id="x-restart" type="button">Restart</button>
         </div>
       </header>
       <div class="x-dots" id="x-dots" role="progressbar" aria-label="Onboarding step" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i></i><i></i><i></i><i></i></div>
@@ -382,6 +409,7 @@
           <p class="x-word">dusty</p>
           <p class="x-product">Dust Recycler · Turn wallet dust into something</p>
           <p class="x-lead">Sweep the tiny leftovers in your wallet into <b class="x-tick-sym">$DUSTY</b>.</p>
+          <p class="x-note" style="justify-content: center; font-size: 13px"><svg><use href="#x-shield" /></svg>Works with MetaMask, Coinbase Wallet, Rabby and more.</p>
           <button class="x-btn" type="button" data-go="2" style="margin-top: 12px">Connect wallet</button>
         </section>
 
@@ -394,15 +422,17 @@
           <div class="x-card x-sheet" id="x-sheet" data-label="WALLET LINK">
             <div class="x-sheet__grip"></div>
             <div id="x-wallets"></div>
+            <div class="x-nowallet x-hidden" id="x-nowallet"></div>
           </div>
           <div class="x-card x-connected" id="x-connected" data-label="WALLET LINK">
-            <div class="x-avatar"></div>
-            <div style="flex: 1">
-              <div class="x-addr x-led">0xA1b2…9F3c</div>
+            <div class="x-avatar" id="x-avatar"></div>
+            <div style="flex: 1; min-width: 0">
+              <div class="x-addr x-led" id="x-addr"></div>
               <div class="x-live" id="x-via">Connected</div>
             </div>
           </div>
-          <p class="x-note"><svg><use href="#x-shield" /></svg>We'll never ask for your seed phrase or private key.</p>
+          <p class="x-err x-hidden" id="x-connect-err" role="alert"></p>
+          <p class="x-note"><svg><use href="#x-shield" /></svg>We'll never ask for your seed phrase or private key. Connecting only shares your public address.</p>
           <button class="x-btn x-hidden" type="button" id="x-to3" data-go="3">Continue</button>
         </section>
 
@@ -420,8 +450,10 @@
               <path d="M27 43l10 10 20-21" fill="none" stroke="#39ff14" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <p class="x-signed" id="x-signed">Signature verified</p>
+            <p class="x-sigline x-hidden" id="x-sigline"></p>
           </div>
-          <p class="x-note"><svg><use href="#x-shield" /></svg>Signing is free and doesn't move any funds.</p>
+          <p class="x-err x-hidden" id="x-sign-err" role="alert"></p>
+          <p class="x-note"><svg><use href="#x-shield" /></svg>Sign-In With Ethereum: a free signature that proves it's your wallet. It doesn't move any funds.</p>
           <button class="x-btn" type="button" id="x-sign">Sign message</button>
         </section>
 
@@ -436,7 +468,7 @@
               <svg class="x-wave" viewBox="0 0 800 100" preserveAspectRatio="none"><path id="x-wave1" /><path id="x-wave2" /></svg>
               <div class="x-bars" id="x-bars"></div>
             </div>
-            <p class="x-scanline" id="x-scanline">Reading balances on 0xA1b2…9F3c</p>
+            <p class="x-scanline" id="x-scanline">Reading balances…</p>
           </div>
           <div id="x-results" class="x-hidden" style="display: flex; flex-direction: column; gap: 14px">
             <div class="x-card x-listcard" data-label="DUST SCAN"><ul class="x-list" id="x-list"></ul></div>
@@ -446,8 +478,10 @@
                 <div><span>You'll receive ≈</span><strong id="x-out">0</strong></div>
               </div>
             </div>
-            <p class="x-note" style="font-size: 13px">Demo rate: 1,000 <span class="x-tick-sym">$DUSTY</span> per $1 of dust.</p>
-            <button class="x-btn x-btn--green" type="button" id="x-recycle">♻ Recycle dust</button>
+            <p class="x-note" style="font-size: 13px"><svg><use href="#x-shield" /></svg><span>Balances above are read live from your wallet (read-only). Recycling is a <b style="color:var(--x-haz)">testnet demo</b>: no swap, no transaction, your tokens stay put. Demo rate: 1,000 <span class="x-tick-sym">$DUSTY</span> per $1.</span></p>
+            <button class="x-btn" type="button" id="x-recycle">♻ Recycle dust · demo</button>
+            <button class="x-btn x-btn--grey x-hidden" type="button" id="x-demo">Preview with demo dust</button>
+            <button class="x-btn x-btn--grey x-hidden" type="button" id="x-rescan">Back to my real balances</button>
           </div>
         </section>
 
@@ -455,7 +489,7 @@
         <section class="x-screen x-win" data-step="5" aria-label="Done">
           <svg class="x-mark" id="x-winmark" aria-hidden="true"><use href="#x-logo" /></svg>
           <p class="x-amount" id="x-amount">+2,890 $DUSTY</p>
-          <p class="x-sub" style="margin-top: -8px">received · your dust is recycled</p>
+          <p class="x-sub" style="margin-top: -8px">demo result · no transaction was sent</p>
           <div class="x-card x-token" data-label="OUTPUT">
             <div class="x-token__head">
               <div class="x-coin"><svg aria-hidden="true"><use href="#x-logo" /></svg></div>
@@ -463,17 +497,18 @@
                 <div style="font-weight: 700; font-size: 20px" class="x-name-sym">Dusty</div>
                 <div style="color: var(--x-ink2); font: 14px var(--x-mono)" class="x-tick-sym">$DUSTY</div>
               </div>
-              <span class="x-badge">♻ Recycled</span>
+              <span class="x-badge">♻ Demo</span>
             </div>
             <dl>
               <dt>Name</dt><dd class="x-name-sym">Dusty</dd>
               <dt>Ticker</dt><dd class="x-tick-raw">DUSTY</dd>
               <dt>Network</dt><dd>Base Sepolia (testnet)</dd>
               <dt>Balance</dt><dd id="x-bal">2,890</dd>
+              <dt>Status</dt><dd>Demo · not minted yet</dd>
             </dl>
-            <button class="x-btn" type="button" id="x-add">Add to wallet</button>
+            <button class="x-btn x-btn--grey" type="button" id="x-add">Add to wallet · soon</button>
           </div>
-          <button class="x-btn x-btn--red" type="button" id="x-again">Restart demo</button>
+          <button class="x-btn x-btn--red" type="button" id="x-again">Start over</button>
         </section>
       </main>
     </div>
@@ -486,15 +521,58 @@
       // Rename the token here
       const TOKEN_TICKER = "DUSTY";
       const TOKEN_NAME = "Dusty";
-      const RATE = 1000; // TOKEN per $1, demo
-      const ADDRESS = "0xA1b2…9F3c";
-      const FULL_ADDRESS = "0xA1b2c3D4e5F60718293a4B5c6D7e8F90a1B29F3c";
+      const RATE = 1000; // TOKEN per $1, demo only
+      const DUST_MAX_USD = 10; // a balance under this (in USD) counts as dust
+      // WalletConnect: paste a project id from https://cloud.reown.com to switch on the QR / mobile-wallet fallback
+      const WC_PROJECT_ID = "";
+      const SIWE_DOMAIN = location.host || "statxqo-clickit.github.io";
+      const SIWE_URI = location.host ? location.origin + location.pathname : "https://statxqo-clickit.github.io/racerx-defender/";
+      const ETHERS_URL = "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+      const WC_URL = "https://esm.sh/@walletconnect/ethereum-provider@2.26.0";
+      const PRICE_URL = "https://coins.llama.fi/prices/current/";
+
+      // Read-only scan targets. Every call below is eth_getBalance / eth_call(balanceOf): nothing is signed or sent.
+      const CHAINS = [
+        { id: 1, key: "ethereum", name: "Ethereum", native: "ETH", nativePrice: "coingecko:ethereum",
+          rpc: ["https://ethereum-rpc.publicnode.com"],
+          tokens: [["USDC","0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",6],["USDT","0xdAC17F958D2ee523a2206206994597C13D831ec7",6],["DAI","0x6B175474E89094C44Da98b954EedeAC495271d0F",18],["WETH","0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",18],["WBTC","0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",8],["LINK","0x514910771AF9Ca656af840dff83E8264EcF986CA",18],["UNI","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",18],["PEPE","0x6982508145454Ce325dDbE47a25d4ec3d2311933",18],["SHIB","0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",18],["stETH","0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",18],["AAVE","0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",18],["LDO","0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",18]] },
+        { id: 8453, key: "base", name: "Base", native: "ETH", nativePrice: "coingecko:ethereum",
+          rpc: ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
+          tokens: [["USDC","0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",6],["USDbC","0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",6],["WETH","0x4200000000000000000000000000000000000006",18],["DAI","0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",18],["cbETH","0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",18],["AERO","0x940181a94A35A4569E4529A3CDfB74e38FD98631",18],["DEGEN","0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",18],["BRETT","0x532f27101965dd16442E59d40670FaF5eBB142E4",18],["TOSHI","0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4",18],["cbBTC","0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",8]] },
+        { id: 42161, key: "arbitrum", name: "Arbitrum", native: "ETH", nativePrice: "coingecko:ethereum",
+          rpc: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+          tokens: [["USDC","0xaf88d065e77c8cC2239327C5EDb3A432268e5831",6],["USDC.e","0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",6],["USDT","0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",6],["WETH","0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",18],["ARB","0x912CE59144191C1204E64559FE8253a0e49E6548",18],["DAI","0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",18],["GMX","0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",18],["WBTC","0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",8]] },
+        { id: 10, key: "optimism", name: "Optimism", native: "ETH", nativePrice: "coingecko:ethereum",
+          rpc: ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+          tokens: [["USDC","0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",6],["USDC.e","0x7F5c764cBc14f9669B88837ca1490cCa17c31607",6],["USDT","0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",6],["WETH","0x4200000000000000000000000000000000000006",18],["OP","0x4200000000000000000000000000000000000042",18],["DAI","0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",18]] },
+        { id: 137, key: "polygon", name: "Polygon", native: "POL", nativePrice: "coingecko:polygon-ecosystem-token",
+          rpc: ["https://polygon-bor-rpc.publicnode.com"],
+          tokens: [["USDC","0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",6],["USDC.e","0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",6],["USDT","0xc2132D05D31c914a87C6611C10748AEb04B58e8F",6],["WETH","0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",18],["WPOL","0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",18],["DAI","0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",18]] },
+        { id: 84532, key: "base-sepolia", name: "Base Sepolia", native: "ETH", testnet: true,
+          rpc: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"],
+          tokens: [["USDC","0x036CbD53842c5426634e7929541eC2318f3dCF7e",6]] },
+      ];
+      const CHAIN_NAMES = { 1: "Ethereum", 10: "Optimism", 56: "BNB Chain", 137: "Polygon", 8453: "Base", 42161: "Arbitrum", 84532: "Base Sepolia", 11155111: "Sepolia" };
+
+      // Demo-only preview list (used only when the user taps "Preview with demo dust")
+      const DEMO_TOKENS = [
+        { sym: "ETH", amt: "0.00031", usd: 0.98, chain: "Base · demo" },
+        { sym: "USDC.e", amt: "0.41", usd: 0.41, chain: "Arbitrum · demo" },
+        { sym: "PEPE", amt: "88,000", usd: 0.62, chain: "Ethereum · demo" },
+        { sym: "GHO", amt: "12.9", usd: 0.15, chain: "Ethereum · demo" },
+      ];
 
       const $ = (s) => document.querySelector(s);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       document.querySelectorAll(".x-tick-sym").forEach((e) => (e.textContent = "$" + TOKEN_TICKER));
       document.querySelectorAll(".x-tick-raw").forEach((e) => (e.textContent = TOKEN_TICKER));
       document.querySelectorAll(".x-name-sym").forEach((e) => (e.textContent = TOKEN_NAME));
+
+      // ethers is only used for address checksums and signature checks; loaded lazily from the CDN
+      let ethersP = null;
+      const loadEthers = () => (ethersP = ethersP || import(ETHERS_URL).catch((e) => { ethersP = null; throw e; }));
 
       /* ---------- drifting dust ---------- */
       const dust = $("#x-dust"), dctx = dust.getContext("2d");
@@ -532,6 +610,8 @@
       /* ---------- steps ---------- */
       let step = 1;
       function go(n) {
+        if (n >= 3 && !session.address) n = 2;
+        if (n >= 4 && !session.signature) n = 3;
         step = n;
         document.querySelectorAll(".x-screen").forEach((s) => s.classList.toggle("is-on", +s.dataset.step === n));
         document.querySelectorAll("#x-dots i").forEach((d, i) => {
@@ -539,6 +619,7 @@
         });
         $("#x-dots").setAttribute("aria-valuenow", Math.min(n, 4));
         scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+        if (n === 2) loadEthers().catch(() => {});
         if (n === 3) prepSign();
         if (n === 4) startScan();
       }
@@ -547,108 +628,424 @@
         if (b) go(+b.dataset.go);
       });
 
-      /* ---------- wallets ---------- */
-      const WALLETS = [
-        { name: "MetaMask", note: "Browser & mobile", icon: '<path d="M4 6l8 4 8-4-2 11-6 3-6-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/>' },
-        { name: "Coinbase Wallet", note: "Mobile app", icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor"/>' },
-        { name: "Rabby", note: "Browser extension", icon: '<ellipse cx="12" cy="14" rx="7" ry="5" fill="currentColor"/><ellipse cx="9" cy="6.5" rx="1.6" ry="4" fill="currentColor"/><ellipse cx="14.5" cy="6.5" rx="1.6" ry="4" fill="currentColor"/>' },
-        { name: "Trust Wallet", note: "Mobile app", icon: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>' },
-        { name: "WalletConnect", note: "Any wallet, scan a QR", icon: '<path d="M5 10c4-4 10-4 14 0M8 13c2.2-2 5.8-2 8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.6" fill="currentColor"/>' },
-      ];
-      $("#x-wallets").innerHTML = WALLETS.map((w, i) =>
-        `<button class="x-wallet" type="button" data-w="${i}"><span class="x-wicon"><svg viewBox="0 0 24 24">${w.icon}</svg></span><span>${w.name}<small>${w.note}</small></span><span class="x-chev">›</span></button>`
-      ).join("");
-      let connecting = false, connectT;
-      $("#x-wallets").addEventListener("click", (e) => {
-        const b = e.target.closest(".x-wallet");
-        if (!b) return;
-        // switching wallets mid-connect: cancel the previous attempt
-        clearTimeout(connectT);
-        $("#x-wallets").querySelectorAll(".x-wallet").forEach((o, i) => {
+      /* ---------- session ---------- */
+      const session = { provider: null, wc: null, walletName: "", address: "", chainId: 0, message: "", signature: "", verifiedHow: "" };
+      const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
+
+      /* ---------- wallets: EIP-6963 discovery + window.ethereum fallback ---------- */
+      const discovered = new Map(); // uuid -> { info, provider }
+      addEventListener("eip6963:announceProvider", (e) => {
+        const d = e.detail;
+        if (!d || !d.info || !d.provider) return;
+        discovered.set(d.info.uuid || d.info.rdns || d.info.name, d);
+        renderWallets();
+      });
+      dispatchEvent(new Event("eip6963:requestProvider"));
+
+      function legacyName(p) {
+        if (!p) return "Browser wallet";
+        if (p.isRabby) return "Rabby";
+        if (p.isCoinbaseWallet) return "Coinbase Wallet";
+        if (p.isTrust || p.isTrustWallet) return "Trust Wallet";
+        if (p.isBraveWallet) return "Brave Wallet";
+        if (p.isOkxWallet || p.isOKExWallet) return "OKX Wallet";
+        if (p.isMetaMask) return "MetaMask";
+        return "Browser wallet";
+      }
+      function walletEntries() {
+        const list = [...discovered.values()].map((d) => ({ name: d.info.name, icon: d.info.icon, provider: d.provider }));
+        if (!list.length && window.ethereum) list.push({ name: legacyName(window.ethereum), icon: "", provider: window.ethereum });
+        return list;
+      }
+      const GENERIC_ICON = '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="8" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="13.5" r="1.4" fill="currentColor"/>';
+      const WC_ICON = '<path d="M5 10c4-4 10-4 14 0M8 13c2.2-2 5.8-2 8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.6" fill="currentColor"/>';
+      let entries = [];
+      function renderWallets() {
+        entries = walletEntries();
+        let html = entries.map((w, i) => {
+          const safeIcon = typeof w.icon === "string" && /^data:image\/(svg\+xml|png|jpeg|webp|gif)[;,]/i.test(w.icon);
+          const ic = safeIcon ? `<img alt="" src="${esc(w.icon)}">` : `<svg viewBox="0 0 24 24">${GENERIC_ICON}</svg>`;
+          return `<button class="x-wallet" type="button" data-w="${i}"><span class="x-wicon">${ic}</span><span>${esc(w.name)}<small>Detected in this browser</small></span><span class="x-chev">›</span></button>`;
+        }).join("");
+        html += `<button class="x-wallet" type="button" data-w="wc"><span class="x-wicon"><svg viewBox="0 0 24 24">${WC_ICON}</svg></span><span>WalletConnect<small>${WC_PROJECT_ID ? "Any mobile wallet · scan a QR" : "QR connect · setup pending"}</small></span><span class="x-chev">›</span></button>`;
+        $("#x-wallets").innerHTML = html;
+        renderNoWallet();
+      }
+      function renderNoWallet() {
+        const box = $("#x-nowallet");
+        if (entries.length) { box.classList.add("x-hidden"); return; }
+        const here = location.host + location.pathname;
+        const href = location.href.split("#")[0];
+        const links = isMobile
+          ? [
+              ["Open in MetaMask", "https://metamask.app.link/dapp/" + here],
+              ["Open in Coinbase Wallet", "https://go.cb-w.com/dapp?cb_url=" + encodeURIComponent(href)],
+              ["Open in Trust Wallet", "https://link.trustwallet.com/open_url?coin_id=60&url=" + encodeURIComponent(href)],
+            ]
+          : [
+              ["Get MetaMask", "https://metamask.io/download/"],
+              ["Get Rabby", "https://rabby.io/"],
+              ["Get Coinbase Wallet", "https://www.coinbase.com/wallet/downloads"],
+            ];
+        box.innerHTML =
+          `<p><b style="color:var(--x-green)">No wallet found in this browser.</b> ${isMobile ? "Open Dusty inside your wallet app's browser to connect:" : "Install a wallet extension, then reload this page:"}</p>` +
+          `<div class="x-links">${links.map(([t, u]) => `<a class="x-link" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}<span class="x-chev">›</span></a>`).join("")}</div>`;
+        box.classList.remove("x-hidden");
+      }
+      setTimeout(renderWallets, 450);
+      renderWallets();
+
+      function setWalletBusy(btn, busy, note) {
+        $("#x-wallets").querySelectorAll(".x-wallet").forEach((o) => {
           const sp = o.querySelector(".x-spinner");
           if (sp) sp.outerHTML = '<span class="x-chev">›</span>';
-          o.querySelector("small").textContent = WALLETS[i].note;
           o.style.background = "";
+          if (o.dataset.note) { o.querySelector("small").textContent = o.dataset.note; delete o.dataset.note; }
         });
+        if (!btn || !busy) return;
+        btn.style.background = "var(--x-glass2)";
+        btn.dataset.note = btn.querySelector("small").textContent;
+        btn.querySelector(".x-chev").outerHTML = '<span class="x-spinner" aria-label="Connecting"></span>';
+        btn.querySelector("small").textContent = note || "Approve in your wallet…";
+      }
+      function walletError(e) {
+        const code = e && (e.code ?? (e.error && e.error.code));
+        if (code === 4001) return "You cancelled the request in your wallet.";
+        if (code === -32002) return "A request is already open. Check your wallet.";
+        return (e && (e.shortMessage || e.message)) || "Your wallet didn't respond. Try again.";
+      }
+      function showErr(sel, msg) { const el = $(sel); el.textContent = msg || ""; el.classList.toggle("x-hidden", !msg); }
+
+      let connecting = false;
+      $("#x-wallets").addEventListener("click", async (e) => {
+        const b = e.target.closest(".x-wallet");
+        if (!b || connecting) return;
+        showErr("#x-connect-err", "");
+        if (b.dataset.w === "wc") return connectWC(b);
+        const w = entries[+b.dataset.w];
+        if (!w) return;
         connecting = true;
-        b.style.background = "var(--x-glass2)";
-        const w = WALLETS[+b.dataset.w];
-        b.querySelector(".x-chev").outerHTML = '<span class="x-spinner" aria-label="Connecting"></span>';
-        b.querySelector("small").textContent = "Approve in your wallet…";
-        connectT = setTimeout(() => {
-          $("#x-sheet").classList.add("x-hidden");
-          $("#x-via").textContent = "Connected via " + w.name;
-          $("#x-connected").classList.add("is-on");
-          $("#x-to3").classList.remove("x-hidden");
-          toast("Wallet connected (demo)");
-        }, reduce ? 300 : 1300);
+        setWalletBusy(b, true);
+        try {
+          await connectWith(w.provider, w.name);
+        } catch (err) {
+          showErr("#x-connect-err", walletError(err));
+        } finally {
+          connecting = false;
+          setWalletBusy(null);
+        }
       });
+
+      async function connectWith(provider, name) {
+        const accounts = await provider.request({ method: "eth_requestAccounts" });
+        if (!accounts || !accounts.length) throw new Error("No account was shared.");
+        const chainHex = await provider.request({ method: "eth_chainId" }).catch(() => "0x1");
+        detach();
+        session.provider = provider;
+        session.walletName = name;
+        session.chainId = parseInt(chainHex, 16) || 1;
+        await setAddress(accounts[0]);
+        attach(provider);
+        showConnected();
+        toast("Wallet connected");
+      }
+
+      async function connectWC(btn) {
+        if (!WC_PROJECT_ID) {
+          showErr("#x-connect-err", "WalletConnect isn't switched on yet. Use a browser wallet, or open Dusty in your wallet app.");
+          return;
+        }
+        connecting = true;
+        setWalletBusy(btn, true, "Opening WalletConnect…");
+        try {
+          const { EthereumProvider } = await import(WC_URL);
+          const wc = await EthereumProvider.init({
+            projectId: WC_PROJECT_ID,
+            optionalChains: [84532, 8453, 1, 42161, 10, 137],
+            showQrModal: true,
+            metadata: { name: TOKEN_NAME, description: "Dust Recycler (testnet prototype)", url: location.origin, icons: [new URL("icon-192.png", location.href).href] },
+          });
+          await wc.connect();
+          session.wc = wc;
+          await connectWith(wc, "WalletConnect");
+        } catch (err) {
+          showErr("#x-connect-err", walletError(err));
+        } finally {
+          connecting = false;
+          setWalletBusy(null);
+        }
+      }
+
+      async function setAddress(a) {
+        let addr = a;
+        try { const { getAddress } = await loadEthers(); addr = getAddress(a); } catch (_) {}
+        session.address = addr;
+        session.signature = ""; session.message = ""; session.verifiedHow = "";
+        const h = addr.toLowerCase().replace(/^0x/, "");
+        const hue = (i) => (parseInt(h.slice(i, i + 4), 16) || 0) % 360;
+        $("#x-avatar").style.background = `conic-gradient(from ${hue(0)}deg, hsl(${hue(4)},90%,55%), #c9ced4, hsl(${hue(8)},80%,35%), #5b636b, hsl(${hue(4)},90%,55%))`;
+        $("#x-addr").textContent = short(addr);
+        $("#x-addr").title = addr;
+        updateVia();
+      }
+      function updateVia() {
+        $("#x-via").textContent = `Connected via ${session.walletName} · ${CHAIN_NAMES[session.chainId] || "Chain " + session.chainId}`;
+      }
+      function showConnected() {
+        $("#x-sheet").classList.add("x-hidden");
+        $("#x-nowallet").classList.add("x-hidden");
+        $("#x-connected").classList.add("is-on");
+        $("#x-to3").classList.remove("x-hidden");
+      }
+
+      let listeners = null;
+      function attach(p) {
+        if (!p.on) return;
+        listeners = {
+          accountsChanged: async (acc) => {
+            if (!acc || !acc.length) return restart(true);
+            if (acc[0].toLowerCase() === session.address.toLowerCase()) return;
+            await setAddress(acc[0]);
+            resetSign();
+            showConnected();
+            toast("Account switched · sign again");
+            go(2);
+          },
+          chainChanged: (c) => { session.chainId = parseInt(c, 16) || session.chainId; updateVia(); if (step === 3 && !session.signature) prepSign(); },
+          disconnect: () => restart(true),
+        };
+        Object.entries(listeners).forEach(([k, f]) => p.on(k, f));
+      }
+      function detach() {
+        const p = session.provider;
+        if (p && listeners && p.removeListener) Object.entries(listeners).forEach(([k, f]) => p.removeListener(k, f));
+        listeners = null;
+      }
+
       function resetWallets() {
         connecting = false;
-        clearTimeout(connectT);
-        $("#x-wallets").querySelectorAll(".x-wallet").forEach((b, i) => {
-          b.style.background = "";
-          const sp = b.querySelector(".x-spinner");
-          if (sp) sp.outerHTML = '<span class="x-chev">›</span>';
-          b.querySelector("small").textContent = WALLETS[i].note;
-        });
+        setWalletBusy(null);
+        showErr("#x-connect-err", "");
         $("#x-sheet").classList.remove("x-hidden");
         $("#x-connected").classList.remove("is-on");
         $("#x-to3").classList.add("x-hidden");
+        renderWallets();
       }
 
-      /* ---------- sign ---------- */
-      let signed = false;
-      function prepSign() {
-        if (signed) return;
-        const nonce = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
-        $("#x-siwe").innerHTML =
-          `<b>dusty.app</b> wants you to sign in with your Ethereum account:\n${FULL_ADDRESS}\n\n<b>Sign in to Dusty</b>\n\nURI: https://dusty.app\nVersion: 1\nChain ID: 84532\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
+      /* ---------- sign: EIP-4361 Sign-In With Ethereum ---------- */
+      function nonce() {
+        const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        const r = crypto.getRandomValues(new Uint8Array(16));
+        return Array.from(r, (x) => abc[x % abc.length]).join("");
       }
-      $("#x-sign").addEventListener("click", () => {
+      function siweMessage() {
+        const now = new Date();
+        const exp = new Date(now.getTime() + 10 * 60 * 1000);
+        return (
+          `${SIWE_DOMAIN} wants you to sign in with your Ethereum account:\n${session.address}\n\n` +
+          `Sign in to ${TOKEN_NAME}. This only proves you own this wallet. It is free and moves no funds.\n\n` +
+          `URI: ${SIWE_URI}\nVersion: 1\nChain ID: ${session.chainId}\nNonce: ${nonce()}\nIssued At: ${now.toISOString()}\nExpiration Time: ${exp.toISOString()}`
+        );
+      }
+      function prepSign() {
+        if (session.signature) return;
+        session.message = siweMessage();
+        const lines = esc(session.message).split("\n");
+        lines[0] = lines[0].replace(esc(SIWE_DOMAIN), `<b>${esc(SIWE_DOMAIN)}</b>`);
+        lines[3] = `<b>${lines[3]}</b>`;
+        $("#x-siwe").innerHTML = lines.join("\n");
+        showErr("#x-sign-err", "");
+      }
+      const toHex = (s) => "0x" + Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("");
+
+      async function verifySig(message, sig) {
+        const { verifyMessage, hashMessage, AbiCoder } = await loadEthers();
+        try {
+          if (verifyMessage(message, sig).toLowerCase() === session.address.toLowerCase()) return "Signature verified";
+        } catch (_) {}
+        // Smart-contract wallets (EIP-1271): read-only eth_call to isValidSignature
+        try {
+          const data = "0x1626ba7e" + AbiCoder.defaultAbiCoder().encode(["bytes32", "bytes"], [hashMessage(message), sig]).slice(2);
+          const res = await session.provider.request({ method: "eth_call", params: [{ to: session.address, data }, "latest"] });
+          if (typeof res === "string" && res.slice(0, 10).toLowerCase() === "0x1626ba7e") return "Smart-wallet signature verified";
+        } catch (_) {}
+        if (/6492649264926492649264926492649264926492649264926492649264926492$/i.test(sig)) return "Smart-wallet signature received";
+        return "";
+      }
+
+      $("#x-sign").addEventListener("click", async () => {
         const b = $("#x-sign");
-        if (signed) return go(4);
+        if (session.signature) return go(4);
+        if (!session.provider) return go(2);
         b.disabled = true;
         b.innerHTML = '<span class="x-spinner" style="border-top-color:#1a0f05"></span> Waiting for wallet…';
-        setTimeout(() => {
-          signed = true;
+        showErr("#x-sign-err", "");
+        try {
+          const msg = session.message || siweMessage();
+          const sig = await session.provider.request({ method: "personal_sign", params: [toHex(msg), session.address] });
+          const how = await verifySig(msg, sig);
+          if (!how) throw new Error("That signature didn't match this wallet. Try again.");
+          session.signature = sig; session.message = msg; session.verifiedHow = how;
+          try { sessionStorage.setItem("dusty.siwe", JSON.stringify({ address: session.address, chainId: session.chainId, message: msg, signature: sig, at: Date.now() })); } catch (_) {}
           $("#x-siwe").style.display = "none";
           $("#x-check").classList.remove("is-on"); void $("#x-check").offsetWidth;
           $("#x-check").classList.add("is-on");
+          $("#x-signed").textContent = how;
           $("#x-signed").classList.add("is-on");
-          b.disabled = false;
+          $("#x-sigline").textContent = `${short(session.address)} · sig ${sig.slice(0, 10)}…${sig.slice(-6)}`;
+          $("#x-sigline").classList.remove("x-hidden");
           b.textContent = "Continue to dust scan";
-        }, reduce ? 300 : 1400);
+        } catch (err) {
+          showErr("#x-sign-err", walletError(err));
+          b.textContent = "Sign message";
+          prepSign();
+        } finally {
+          b.disabled = false;
+        }
       });
+      function resetSign() {
+        session.signature = ""; session.message = ""; session.verifiedHow = "";
+        $("#x-siwe").style.display = "";
+        $("#x-check").classList.remove("is-on");
+        $("#x-signed").classList.remove("is-on");
+        $("#x-sigline").classList.add("x-hidden");
+        $("#x-sign").disabled = false;
+        $("#x-sign").textContent = "Sign message";
+        showErr("#x-sign-err", "");
+      }
 
-      /* ---------- scan ---------- */
-      const TOKENS = [
-        { sym: "ETH", amt: "0.00031", usd: 0.98, bg: "#c9c3ff", chain: "Base Sepolia" },
-        { sym: "USDC.e", amt: "0.41", usd: 0.41, bg: "#8fc2ff", chain: "Bridged USDC" },
-        { sym: "RING", amt: "5,128", usd: 0.72, bg: "#ffb38a", chain: "Airdrop leftover" },
-        { sym: "cbETH", amt: "0.0000043", usd: 0.01, bg: "#9fb4ff", chain: "Staked ETH" },
-        { sym: "GHO", amt: "12.9", usd: 0.15, bg: "#b6f0c6", chain: "Stablecoin" },
-        { sym: "PEPE", amt: "88,000", usd: 0.62, bg: "#9fe08c", chain: "Meme token" },
-      ];
-      const SPAM = [
-        { sym: "Fake stETH", amt: "1,000", note: "Impersonates Lido stETH" },
-        { sym: "Claim-reward.xyz", amt: "7,777", note: "Phishing link in name" },
-      ];
+      /* ---------- scan: real read-only balance reads ---------- */
+      async function rpcBatch(chain, calls) {
+        const body = JSON.stringify(calls.map((c, i) => ({ jsonrpc: "2.0", id: i, method: c[0], params: c[1] })));
+        let lastErr;
+        for (const url of chain.rpc) {
+          try {
+            const ctl = new AbortController();
+            const t = setTimeout(() => ctl.abort(), 12000);
+            const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body, signal: ctl.signal });
+            clearTimeout(t);
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            const j = await r.json();
+            if (!Array.isArray(j)) throw new Error("Bad batch reply");
+            const out = []; j.forEach((x) => (out[x.id] = x.result));
+            return out;
+          } catch (e) { lastErr = e; }
+        }
+        throw lastErr;
+      }
+      function units(raw, dec) {
+        const base = 10n ** BigInt(dec);
+        const whole = raw / base, frac = raw % base;
+        const num = Number(whole) + Number(frac) / Number(base);
+        return num;
+      }
+      function fmtAmt(n) {
+        if (n === 0) return "0";
+        if (n < 0.000001) return "<0.000001";
+        if (n >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+        if (n >= 1) return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
+        return n.toPrecision(3).replace(/0+$/, "").replace(/\.$/, "");
+      }
+      async function scanChain(chain, addr) {
+        const pad = addr.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+        const calls = [["eth_getBalance", [addr, "latest"]]].concat(chain.tokens.map((t) => ["eth_call", [{ to: t[1], data: "0x70a08231" + pad }, "latest"]]));
+        const res = await rpcBatch(chain, calls);
+        const found = [];
+        const nat = res[0] ? BigInt(res[0]) : 0n;
+        if (nat > 0n) found.push({ sym: chain.native, chain, amount: units(nat, 18), priceKey: chain.testnet ? null : chain.nativePrice });
+        chain.tokens.forEach((t, i) => {
+          const v = res[i + 1];
+          if (!v || v === "0x") return;
+          const raw = BigInt(v);
+          if (raw > 0n) found.push({ sym: t[0], chain, amount: units(raw, t[2]), priceKey: chain.testnet ? null : `${chain.key}:${t[1]}` });
+        });
+        return found;
+      }
+      async function priceAll(items) {
+        const keys = [...new Set(items.map((x) => x.priceKey).filter(Boolean))];
+        if (!keys.length) return {};
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 10000);
+        try {
+          const r = await fetch(PRICE_URL + keys.join(","), { signal: ctl.signal });
+          const j = await r.json();
+          const out = {};
+          Object.entries(j.coins || {}).forEach(([k, v]) => (out[k.toLowerCase()] = v.price));
+          return out;
+        } finally { clearTimeout(t); }
+      }
+
+      let scanRun = 0, dustRows = [], usingDemo = false;
+      async function startScan(demo) {
+        const run = ++scanRun;
+        usingDemo = !!demo;
+        $("#x-scanning").classList.remove("x-hidden");
+        $("#x-results").classList.add("x-hidden");
+        $("#x-scan-title").textContent = demo ? "Loading demo dust…" : "Scanning for dust…";
+        const line = (t) => run === scanRun && ($("#x-scanline").textContent = t);
+        if (demo) {
+          line("Demo data · not your wallet");
+          await new Promise((r) => setTimeout(r, reduce ? 200 : 900));
+          if (run !== scanRun) return;
+          dustRows = DEMO_TOKENS.map((t) => ({ sym: t.sym, amtText: t.amt, usd: t.usd, sub: t.chain }));
+          return renderList({ dust: dustRows, kept: [], unpriced: [], testnet: [], failed: [] });
+        }
+        const addr = session.address;
+        const total = CHAINS.reduce((n, c) => n + c.tokens.length + 1, 0);
+        line(`Reading ${total} balances on ${short(addr)}`);
+        let done = 0;
+        const failed = [];
+        const all = (await Promise.all(CHAINS.map((c) =>
+          scanChain(c, addr)
+            .then((f) => { done++; line(`Read ${c.name} · ${done}/${CHAINS.length} networks`); return f; })
+            .catch(() => { done++; failed.push(c.name); return []; })
+        ))).flat();
+        if (run !== scanRun) return;
+        line(all.length ? `Pricing ${all.length} balances…` : "No balances found");
+        let prices = {};
+        try { prices = await priceAll(all); } catch (_) {}
+        if (run !== scanRun) return;
+        const groups = { dust: [], kept: [], unpriced: [], testnet: [], failed };
+        all.forEach((x) => {
+          const sub = x.chain.name + (x.chain.testnet ? " · testnet" : "");
+          const row = { sym: x.sym, amtText: fmtAmt(x.amount), sub };
+          if (x.chain.testnet) return groups.testnet.push({ ...row, usd: 0 });
+          const p = prices[(x.priceKey || "").toLowerCase()];
+          if (typeof p !== "number") return groups.unpriced.push(row);
+          row.usd = x.amount * p;
+          (row.usd < DUST_MAX_USD ? groups.dust : groups.kept).push(row);
+        });
+        groups.dust.sort((a, b) => b.usd - a.usd);
+        groups.kept.sort((a, b) => b.usd - a.usd);
+        dustRows = groups.dust;
+        renderList(groups);
+      }
+
       const tickSvg = '<svg><use href="#x-tick"/></svg>';
-      function renderList() {
-        let html = TOKENS.map((t, i) =>
-          `<li class="x-row" style="animation-delay:${i * 70}ms"><label style="display:contents"><input type="checkbox" data-i="${i}" checked><span class="x-box">${tickSvg}</span><span class="x-tok">${t.sym.slice(0, 2)}</span><span class="x-meta"><b><span class="x-led">${t.amt}</span> ${t.sym}</b><small>${t.chain}</small></span><span class="x-usd x-led">$${t.usd.toFixed(2)}</span></label></li>`
+      const usdText = (u) => (u > 0 && u < 0.01 ? "<$0.01" : "$" + u.toFixed(2));
+      function renderList(g) {
+        $("#x-scanning").classList.add("x-hidden");
+        $("#x-results").classList.remove("x-hidden");
+        $("#x-scan-title").textContent = usingDemo ? `Demo: ${g.dust.length} bits of dust` : g.dust.length ? `Found ${g.dust.length} bit${g.dust.length === 1 ? "" : "s"} of dust` : "No dust found";
+        let i = 0;
+        const off = (t, right) =>
+          `<li class="x-row is-off" style="animation-delay:${i++ * 60}ms"><span class="x-box"></span><span class="x-tok">${esc(t.sym.slice(0, 2))}</span><span class="x-meta"><b><span class="x-led">${esc(t.amtText)}</span> ${esc(t.sym)}</b><small>${esc(t.sub)}</small></span><span class="x-usd x-led">${right}</span></li>`;
+        let html = g.dust.map((t, k) =>
+          `<li class="x-row" style="animation-delay:${i++ * 60}ms"><label style="display:contents"><input type="checkbox" data-i="${k}" checked><span class="x-box">${tickSvg}</span><span class="x-tok">${esc(t.sym.slice(0, 2))}</span><span class="x-meta"><b><span class="x-led">${esc(t.amtText)}</span> ${esc(t.sym)}</b><small>${esc(t.sub)}</small></span><span class="x-usd x-led">${usdText(t.usd)}</span></label></li>`
         ).join("");
-        html += `<li class="x-spamhead" style="list-style:none">Skipped for your safety</li>`;
-        html += SPAM.map((t, i) =>
-          `<li class="x-row is-spam" style="animation-delay:${(TOKENS.length + i) * 70}ms" aria-disabled="true"><span class="x-box"></span><span class="x-tok x-tok--haz">⚠</span><span class="x-meta"><b>${t.amt} ${t.sym}</b><small>${t.note}</small></span><span class="x-warn">⚠ Suspicious / spam token, skipped</span></li>`
-        ).join("");
+        if (!g.dust.length) html += `<li class="x-empty">${usingDemo ? "" : `Nothing under $${DUST_MAX_USD} across ${CHAINS.length} networks. Your wallet is spotless.`}</li>`;
+        if (g.kept.length) html += `<li class="x-grouphead">Not dust · over $${DUST_MAX_USD}, left alone</li>` + g.kept.map((t) => off(t, usdText(t.usd))).join("");
+        if (g.unpriced.length) html += `<li class="x-grouphead">No price found · left alone</li>` + g.unpriced.map((t) => off(t, "n/a")).join("");
+        if (g.testnet.length) html += `<li class="x-grouphead">Testnet · no real value</li>` + g.testnet.map((t) => off(t, "$0")).join("");
+        if (g.failed.length) html += `<li class="x-grouphead x-grouphead--warn">Couldn't reach: ${esc(g.failed.join(", "))}</li>`;
         $("#x-list").innerHTML = html;
+        $("#x-demo").classList.toggle("x-hidden", usingDemo || g.dust.length > 0);
+        $("#x-rescan").classList.toggle("x-hidden", !usingDemo);
         updateTotals();
       }
       function selectedCents() {
         let c = 0;
-        document.querySelectorAll("#x-list input:checked").forEach((el) => (c += Math.round(TOKENS[+el.dataset.i].usd * 100)));
+        document.querySelectorAll("#x-list input:checked").forEach((el) => (c += Math.max(1, Math.round((dustRows[+el.dataset.i].usd || 0) * 100))));
         return c;
       }
       const fmt = (n) => n.toLocaleString("en-US");
@@ -659,6 +1056,8 @@
         $("#x-recycle").disabled = c === 0;
       }
       $("#x-list").addEventListener("change", updateTotals);
+      $("#x-demo").addEventListener("click", () => startScan(true));
+      $("#x-rescan").addEventListener("click", () => startScan(false));
 
       /* oscilloscope: a periodic waveform (loops at x=400) and LED bar graph */
       (function scope() {
@@ -680,23 +1079,7 @@
         }).join("");
       })();
 
-      let scanTimer = [];
-      function startScan() {
-        scanTimer.forEach(clearTimeout); scanTimer = [];
-        $("#x-scanning").classList.remove("x-hidden");
-        $("#x-results").classList.add("x-hidden");
-        $("#x-scan-title").textContent = "Scanning for dust…";
-        const lines = [`Reading balances on ${ADDRESS}`, "Checking 214 token contracts…", "Pricing tiny balances…", "Filtering spam & phishing tokens…"];
-        lines.forEach((l, i) => scanTimer.push(setTimeout(() => ($("#x-scanline").textContent = l), i * 700)));
-        scanTimer.push(setTimeout(() => {
-          $("#x-scanning").classList.add("x-hidden");
-          $("#x-results").classList.remove("x-hidden");
-          $("#x-scan-title").textContent = `Found ${TOKENS.length} bits of dust`;
-          renderList();
-        }, reduce ? 400 : 2900));
-      }
-
-      /* ---------- recycle: particle implode ---------- */
+      /* ---------- recycle: DEMO ONLY. No swap contract is called and no transaction is sent. ---------- */
       let busy = false;
       $("#x-recycle").addEventListener("click", () => {
         if (busy) return;
@@ -722,7 +1105,6 @@
         function frame(now) {
           const t = now - start;
           fctx.clearRect(0, 0, W, H);
-          // gathering glow
           const g = Math.min(1, t / T);
           const grad = fctx.createRadialGradient(tx, ty, 0, tx, ty, 40 + 80 * g);
           grad.addColorStop(0, `rgba(57,255,20,${0.5 * g})`); grad.addColorStop(1, "rgba(57,255,20,0)");
@@ -743,7 +1125,6 @@
           }
           fctx.shadowBlur = 0;
           if (t < T) return requestAnimationFrame(frame);
-          // flash ring
           const fs = performance.now();
           (function ring(n) {
             const v = (n - fs) / 450;
@@ -754,7 +1135,7 @@
             requestAnimationFrame(ring);
           })(fs);
           $("#x-amount").textContent = "+" + fmt(received) + " $" + TOKEN_TICKER;
-          $("#x-bal").textContent = fmt(received);
+          $("#x-bal").textContent = fmt(received) + " (demo)";
           const m = $("#x-winmark"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
           busy = false;
           go(5);
@@ -767,30 +1148,47 @@
       function toast(msg) {
         const t = $("#x-toast");
         t.textContent = msg; t.classList.add("is-on");
-        clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("is-on"), 2200);
+        clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("is-on"), 2400);
       }
-      $("#x-add").addEventListener("click", () => {
-        $("#x-add").textContent = "✓ Added";
-        toast("Added to wallet (demo)");
-      });
+      $("#x-add").addEventListener("click", () => toast(`$${TOKEN_TICKER} isn't deployed yet (testnet soon)`));
 
-      /* ---------- restart ---------- */
-      function restart() {
-        scanTimer.forEach(clearTimeout);
+      /* ---------- restart / disconnect ---------- */
+      async function restart(silent) {
+        scanRun++;
+        const p = session.provider, wc = session.wc;
+        detach();
+        Object.assign(session, { provider: null, wc: null, walletName: "", address: "", chainId: 0 });
+        try { sessionStorage.removeItem("dusty.siwe"); } catch (_) {}
+        if (wc && wc.disconnect) wc.disconnect().catch(() => {});
+        else if (p && silent !== true) p.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }).catch(() => {});
         resetWallets();
-        signed = false;
-        $("#x-siwe").style.display = "";
-        $("#x-check").classList.remove("is-on");
-        $("#x-signed").classList.remove("is-on");
-        $("#x-sign").disabled = false;
-        $("#x-sign").textContent = "Sign message";
-        $("#x-add").textContent = "Add to wallet";
+        resetSign();
         fctx.clearRect(0, 0, W, H);
         go(1);
       }
-      $("#x-restart").addEventListener("click", restart);
-      $("#x-again").addEventListener("click", restart);
-      $("#x-settings").addEventListener("click", () => toast("Settings are locked in this demo"));
+      $("#x-restart").addEventListener("click", () => restart());
+      $("#x-again").addEventListener("click", () => restart());
+      $("#x-settings").addEventListener("click", () => toast(`Scanning ${CHAINS.length} networks · dust = under $${DUST_MAX_USD}`));
+
+      /* ---------- installable app (PWA) ---------- */
+      let installEvt = null;
+      addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        installEvt = e;
+        $("#x-install").classList.remove("x-hidden");
+      });
+      addEventListener("appinstalled", () => { installEvt = null; $("#x-install").classList.add("x-hidden"); toast("Dusty installed"); });
+      $("#x-install").addEventListener("click", async () => {
+        if (!installEvt) return;
+        installEvt.prompt();
+        await installEvt.userChoice.catch(() => {});
+        installEvt = null;
+        $("#x-install").classList.add("x-hidden");
+      });
+      if ("serviceWorker" in navigator && location.protocol === "https:") {
+        addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+      }
+
       go(1);
     </script>
   </body>
