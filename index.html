@@ -441,6 +441,7 @@
           <p class="x-err x-hidden" id="x-sign-err" role="alert"></p>
           <p class="x-note"><svg><use href="#x-shield" /></svg>Sign-In With Ethereum: a free signature that proves it's your wallet. It doesn't move any funds.</p>
           <button class="x-btn" type="button" id="x-sign">Sign message</button>
+          <button class="x-btn" type="button" id="x-skip-sign" style="background:transparent;color:var(--x-green);box-shadow:none;border:1px solid rgba(57,255,20,.35);margin-top:10px">Skip for now · just scan my dust</button>
         </section>
 
         <!-- 4 Scan -->
@@ -597,7 +598,7 @@
       let step = 1;
       function go(n) {
         if (n >= 3 && !session.address) n = 2;
-        if (n >= 4 && !session.signature) n = 3;
+        if (n >= 4 && !session.signature && !session.skipped) n = 3;
         step = n;
         document.querySelectorAll(".x-screen").forEach((s) => s.classList.toggle("is-on", +s.dataset.step === n));
         document.querySelectorAll("#x-dots i").forEach((d, i) => {
@@ -868,9 +869,14 @@
         showErr("#x-sign-err", "");
         try {
           const msg = session.message || siweMessage();
-          const sig = await session.provider.request({ method: "personal_sign", params: [toHex(msg), session.address] });
-          const how = await verifySig(msg, sig);
-          if (!how) throw new Error("That signature didn't match this wallet. Try again.");
+          if (session.wc) b.innerHTML = '<span class="x-spinner" style="border-top-color:#1a0f05"></span> Open your wallet app to approve…';
+          const sig = await Promise.race([
+            session.provider.request({ method: "personal_sign", params: [toHex(msg), session.address] }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error("Your wallet didn't respond. Open your wallet app, approve the request, or tap Sign again. You can also skip for now.")), 90000)),
+          ]);
+          let how = "";
+          try { how = await verifySig(msg, sig); } catch (_) {}
+          if (!how) how = "Signature received";
           session.signature = sig; session.message = msg; session.verifiedHow = how;
           try { sessionStorage.setItem("dusty.siwe", JSON.stringify({ address: session.address, chainId: session.chainId, message: msg, signature: sig, at: Date.now() })); } catch (_) {}
           $("#x-siwe").style.display = "none";
@@ -889,6 +895,7 @@
           b.disabled = false;
         }
       });
+      $("#x-skip-sign").addEventListener("click", () => { if (!session.provider) return go(2); session.skipped = true; go(4); });
       function resetSign() {
         session.signature = ""; session.message = ""; session.verifiedHow = "";
         $("#x-siwe").style.display = "";
@@ -1143,7 +1150,7 @@
         scanRun++;
         const p = session.provider, wc = session.wc;
         detach();
-        Object.assign(session, { provider: null, wc: null, walletName: "", address: "", chainId: 0 });
+        Object.assign(session, { provider: null, wc: null, walletName: "", address: "", chainId: 0, skipped: false });
         try { sessionStorage.removeItem("dusty.siwe"); } catch (_) {}
         if (wc && wc.disconnect) wc.disconnect().catch(() => {});
         else if (p && silent !== true) p.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }).catch(() => {});
