@@ -11,7 +11,7 @@ button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;box-sizing:borde
 <small>No test ETH? <a href="https://thirdweb.com/base-sepolia-testnet" target="_blank">Get free Base Sepolia gas</a></small></div>
 <div class="step"><b>2. Deploy token</b><small><br>Owner = your connected wallet. Starting supply:</small><input id="supply" value="0" inputmode="numeric">
 <button id="bDeploy" disabled>Deploy DUSTY</button><div class="out" id="addr"></div></div>
-<div class="step"><b>3. Approve Dusty Minter</b><input id="minter" value="0xe8d78733FCA2cd46AD3b88c47baF74F35BE6bE6d">
+<div class="step"><b>3. Approve Dusty Minter</b><small><br>Token:</small><input id="tok" value="0x297cBf5BB6CE735D879557E1099954569E246D43"><small>Minter:</small><input id="minter" value="0xe8d78733FCA2cd46AD3b88c47baF74F35BE6bE6d">
 <button id="bMinter" disabled>Set minter</button><div class="out" id="mout"></div></div>
 <div class="step"><b>4. Done</b><small><br>Copy the token address and send it to Hark.</small><button id="bCopy" disabled>Copy token address</button></div>
 </main>
@@ -27,15 +27,16 @@ $("bConnect").onclick=async()=>{try{
  const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
  if(n.chainId!==CHAIN){$("who").textContent="Switch your wallet to Base Sepolia, then tap Connect again.";return}
  signer=await p.getSigner();const a=await signer.getAddress();const bal=await p.getBalance(a);
- $("who").textContent=a+"  ·  "+ethers.formatEther(bal).slice(0,8)+" test ETH";$("bDeploy").disabled=false;
+ $("bMinter").disabled=false;$("who").textContent=a+"  ·  "+ethers.formatEther(bal).slice(0,8)+" test ETH";$("bDeploy").disabled=false;
 }catch(e){$("who").textContent="Error: "+(e.shortMessage||e.message)}};
 $("bDeploy").onclick=async()=>{try{$("bDeploy").disabled=true;$("addr").textContent="Confirm in your wallet…";
  const f=new ethers.ContractFactory(ABI,BYTECODE,signer);const c=await f.deploy(await signer.getAddress(),BigInt($("supply").value||"0"));
- $("addr").textContent="Deploying… tx "+c.deploymentTransaction().hash;await c.waitForDeployment();tokenAddr=await c.getAddress();token=c;
+ $("addr").textContent="Deploying… tx "+c.deploymentTransaction().hash;await c.waitForDeployment();tokenAddr=await c.getAddress();token=c;$("tok").value=tokenAddr;
  $("addr").innerHTML="Token: "+tokenAddr+'<br><a target="_blank" href="https://sepolia.basescan.org/address/'+tokenAddr+'">View on Basescan</a>';
  $("bMinter").disabled=false;$("bCopy").disabled=false;
 }catch(e){$("addr").textContent="Error: "+(e.shortMessage||e.message);$("bDeploy").disabled=false}};
 $("bMinter").onclick=async()=>{try{$("bMinter").disabled=true;$("mout").textContent="Confirm in your wallet…";
+ if(!token){token=new ethers.Contract($("tok").value.trim(),ABI,signer)}
  const tx=await token.setMinter($("minter").value.trim(),true);await tx.wait();$("mout").textContent="Minter approved ✓";
 }catch(e){$("mout").textContent="Error: "+(e.shortMessage||e.message);$("bMinter").disabled=false}};
 $("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(tokenAddr);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",tokenAddr)}};
