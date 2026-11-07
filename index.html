@@ -508,6 +508,7 @@
       // Rename the token here
       const TOKEN_TICKER = "DUSTY";
       const TOKEN_NAME = "Dusty";
+      const TOKEN_ADDRESS = "0x297cBf5BB6CE735D879557E1099954569E246D43"; // Base Sepolia (84532), testnet
       const RATE = 1000; // TOKEN per $1, demo only
       const DUST_MAX_USD = 10; // a balance under this (in USD) counts as dust
       // WalletConnect: paste a project id from https://cloud.reown.com to switch on the QR / mobile-wallet fallback
@@ -1143,7 +1144,14 @@
         t.textContent = msg; t.classList.add("is-on");
         clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("is-on"), 2400);
       }
-      $("#x-add").addEventListener("click", () => toast(`$${TOKEN_TICKER} isn't deployed yet (testnet soon)`));
+      $("#x-add").addEventListener("click", async () => {
+        try {
+          if (!window.ethereum) { toast("Open in your wallet app to add $" + TOKEN_TICKER); return; }
+          try { await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x14a34" }] }); } catch (e) {}
+          await ethereum.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: TOKEN_ADDRESS, symbol: TOKEN_TICKER, decimals: 18, image: new URL("icon-192.png", location.href).href } } });
+          toast("$" + TOKEN_TICKER + " added (Base Sepolia testnet)");
+        } catch (e) { toast("Couldn't add token"); }
+      });
 
       /* ---------- restart / disconnect ---------- */
       async function restart(silent) {
