@@ -467,6 +467,8 @@
             </div>
             <p class="x-note" style="font-size: 13px"><svg><use href="#x-shield" /></svg><span>Balances above are read live from your wallet (read-only). Recycling is a <b style="color:var(--x-haz)">testnet demo</b>: no swap, no transaction, your tokens stay put. Demo rate: 1,000 <span class="x-tick-sym">$DUSTY</span> per $1.</span></p>
             <button class="x-btn" type="button" id="x-recycle">♻ Recycle dust · demo</button>
+            <button class="x-btn x-hidden" type="button" id="x-testrecycle">♻ Recycle testnet USDC · real Base Sepolia tx</button>
+            <p id="x-teststat" style="font-size:12px;opacity:.8;margin:6px 0 0"></p>
             <button class="x-btn x-btn--grey x-hidden" type="button" id="x-demo">Preview with demo dust</button>
             <button class="x-btn x-btn--grey x-hidden" type="button" id="x-rescan">Back to my real balances</button>
           </div>
@@ -511,6 +513,9 @@
       const TOKEN_ADDRESS = "0x297cBf5BB6CE735D879557E1099954569E246D43"; // Base Sepolia (84532), testnet
       const RECYCLER_ADDRESS = "0x199Fef502B969018091294a69e6634DA7aC9e64d"; // Base Sepolia, 5% fee, testnet
       const RATE = 1000; // TOKEN per $1, demo only
+      const QUOTE_URL = "https://dusty-quote.statxqo.workers.dev/quote"; // testnet quote signer
+      const TEST_RECYCLE = ["0x036cbd53842c5426634e7929541ec2318f3dcf7e"]; // Base Sepolia USDC
+      let testRows = [];
       const DUST_MAX_USD = 10; // a balance under this (in USD) counts as dust
       // WalletConnect: paste a project id from https://cloud.reown.com to switch on the QR / mobile-wallet fallback
       const WC_PROJECT_ID = "285acdd88b8d03791c962a3df94f70fa";
@@ -952,7 +957,7 @@
           const v = res[i + 1];
           if (!v || v === "0x") return;
           const raw = BigInt(v);
-          if (raw > 0n) found.push({ sym: t[0], chain, amount: units(raw, t[2]), priceKey: chain.testnet ? null : `${chain.key}:${t[1]}` });
+          if (raw > 0n) found.push({ sym: t[0], chain, amount: units(raw, t[2]), raw, addr: t[1], dec: t[2], priceKey: chain.testnet ? null : `${chain.key}:${t[1]}` });
         });
         return found;
       }
@@ -1013,6 +1018,9 @@
         groups.dust.sort((a, b) => b.usd - a.usd);
         groups.kept.sort((a, b) => b.usd - a.usd);
         dustRows = groups.dust;
+        testRows = all.filter((x) => x.chain.id === 84532 && x.addr && TEST_RECYCLE.includes(x.addr.toLowerCase()));
+        $("#x-testrecycle").classList.toggle("x-hidden", !testRows.length || usingDemo);
+        $("#x-teststat").textContent = "";
         renderList(groups);
       }
 
@@ -1074,6 +1082,49 @@
         }).join("");
       })();
 
+
+      /* ---------- testnet recycle: REAL Base Sepolia transactions (testnet tokens, no real value) ---------- */
+      $("#x-testrecycle").addEventListener("click", async () => {
+        if (busy || !session.provider || !testRows.length) return;
+        busy = true; const btn = $("#x-testrecycle"); btn.disabled = true;
+        const stat = (m) => ($("#x-teststat").textContent = m);
+        try {
+          const { BrowserProvider, Contract } = await loadEthers();
+          try { await session.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x14a34" }] }); }
+          catch (e) { await session.provider.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x14a34", chainName: "Base Sepolia", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://sepolia.base.org"], blockExplorerUrls: ["https://sepolia.basescan.org"] }] }); }
+          const signer = await new BrowserProvider(session.provider).getSigner();
+          const me = await signer.getAddress();
+          const rec = new Contract(RECYCLER_ADDRESS, ["function recycle(address,uint256,uint256,uint256,bytes)"], signer);
+          let got = 0n;
+          for (const row of testRows) {
+            const cap = 10n ** BigInt(row.dec) * 999n / 100n; // stay under $10
+            const amount = row.raw < cap ? row.raw : cap;
+            stat(`Getting quote for ${row.sym}…`);
+            const r = await fetch(QUOTE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user: me, token: row.addr, amount: amount.toString() }) });
+            const q = await r.json();
+            if (!r.ok) throw new Error(q.error || "quote failed");
+            const erc = new Contract(row.addr, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
+            if ((await erc.allowance(me, RECYCLER_ADDRESS)) < amount) {
+              stat(`Approve ${row.sym} in your wallet…`);
+              await (await erc.approve(RECYCLER_ADDRESS, amount)).wait();
+            }
+            stat("Confirm recycle in your wallet…");
+            const tx = await rec.recycle(row.addr, amount, q.dustyOut, q.deadline, q.signature);
+            stat("Recycling on Base Sepolia…");
+            await tx.wait();
+            got += BigInt(q.toUser);
+          }
+          const tok = new Contract(TOKEN_ADDRESS, ["function balanceOf(address) view returns (uint256)"], signer);
+          const bal = await tok.balanceOf(me);
+          const n = (v) => fmt(Number(v / 10n ** 15n) / 1000);
+          $("#x-amount").textContent = "+" + n(got) + " $" + TOKEN_TICKER;
+          $("#x-bal").textContent = n(bal) + " (testnet)";
+          stat("Done · testnet DUSTY minted (5% recycle fee applied)");
+          go(5);
+        } catch (e) {
+          stat("Error: " + ((e && (e.shortMessage || e.reason || e.message)) || "failed").slice(0, 140));
+        } finally { busy = false; btn.disabled = false; }
+      });
       /* ---------- recycle: DEMO ONLY. No swap contract is called and no transaction is sent. ---------- */
       let busy = false;
       $("#x-recycle").addEventListener("click", () => {
