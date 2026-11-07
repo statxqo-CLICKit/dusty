@@ -1,5 +1,6 @@
 // dusty-quote — signs Recycler quotes for Dusty (Base Sepolia TESTNET only).
-// Secret required: QUOTE_SIGNER_KEY (private key of the Dusty Minter wallet), set by the owner in Cloudflare.
+// Signer: uses secret QUOTE_SIGNER_KEY if set; otherwise generates its own key once and keeps it in KV (binding DUSTY_KV).
+// The Recycler owner points the contract at this signer with setQuoteSigner(<address from /health>).
 import { Wallet, JsonRpcProvider, Contract, getAddress } from "ethers";
 
 const CHAIN_ID = 84532;
@@ -27,7 +28,13 @@ export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
     const url = new URL(req.url);
-    const signer = env.QUOTE_SIGNER_KEY ? new Wallet(env.QUOTE_SIGNER_KEY) : null;
+    let signer = null;
+    if (env.QUOTE_SIGNER_KEY) signer = new Wallet(env.QUOTE_SIGNER_KEY);
+    else if (env.DUSTY_KV) {
+      let k = await env.DUSTY_KV.get("signer_key");
+      if (!k) { k = Wallet.createRandom().privateKey; await env.DUSTY_KV.put("signer_key", k); }
+      signer = new Wallet(k);
+    }
     if (url.pathname === "/health")
       return json(req, { ok: !!signer, signer: signer ? signer.address : null, recycler: RECYCLER, chainId: CHAIN_ID, testnet: true });
     if (url.pathname !== "/quote" || req.method !== "POST") return json(req, { error: "not found" }, 404);

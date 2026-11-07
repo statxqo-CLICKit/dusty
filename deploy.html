@@ -17,6 +17,7 @@ button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;box-sizing:borde
 <div class="step"><b>5. Deploy Recycler (5% fee)</b><small><br>Treasury (gets all dust):</small><input id="treas" placeholder="your connected wallet"><small>Fee (500 = 5%):</small><input id="fee" value="500" inputmode="numeric">
 <button id="bRec">Deploy Recycler</button><div class="out" id="rout"></div></div>
 <div class="step"><b>6. Let Recycler mint DUSTY</b><input id="recAddr" placeholder="Recycler address (fills after step 5)"><button id="bRecMint">Allow Recycler</button><div class="out" id="rmout"></div></div>
+<div class="step"><b>7. Use Dusty quote signer</b><small><br>Points the Recycler at the Dusty pricing service. One tap.</small><input id="recAddr2" value="0x199Fef502B969018091294a69e6634DA7aC9e64d"><button id="bSigner">Set quote signer</button><div class="out" id="sout"></div></div>
 </main>
 <script type="module">
 import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
@@ -55,4 +56,10 @@ $("bRec").onclick=async()=>{try{if(!signer){await connect();if(!signer)return}$(
 $("bRecMint").onclick=async()=>{try{if(!signer){await connect();if(!signer)return}$("bRecMint").disabled=true;$("rmout").textContent="Confirm in your wallet…";
  const tk=new ethers.Contract($("tok").value.trim(),ABI,signer);const tx=await tk.setMinter($("recAddr").value.trim(),true);await tx.wait();$("rmout").textContent="Recycler can mint ✓ Send the Recycler address to Hark.";
 }catch(e){$("rmout").textContent="Error: "+(e.shortMessage||e.message);$("bRecMint").disabled=false}};
+
+$("bSigner").onclick=async()=>{try{if(!signer){await connect();if(!signer)return}$("bSigner").disabled=true;$("sout").textContent="Checking signer…";
+ const h=await (await fetch("https://dusty-quote.statxqo.workers.dev/health")).json();if(!h.signer)throw new Error("signer not ready");
+ const rc=new ethers.Contract($("recAddr2").value.trim(),["function setQuoteSigner(address)"],signer);$("sout").textContent="Confirm in your wallet… ("+h.signer+")";
+ await (await rc.setQuoteSigner(h.signer)).wait();$("sout").textContent="Quote signer set ✓ Recycling is live on testnet.";
+}catch(e){$("sout").textContent="Error: "+(e.shortMessage||e.message);$("bSigner").disabled=false}};
 </script></body></html>

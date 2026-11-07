@@ -329,6 +329,13 @@
       .x-token dt { color: var(--x-ink3); font: 700 12px/1.6 var(--x-mono); letter-spacing: 0.12em; text-transform: uppercase; }
       .x-token dd { margin: 0; text-align: right; font-weight: 600; }
       #x-bal { font-family: var(--x-mono); color: var(--x-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.7); font-size: 16px; }
+      .x-soon { margin-top: 18px; text-align: left; }
+      .x-soon h3 { margin: 0 0 10px; font: 700 13px var(--x-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--x-green); text-shadow: 0 0 6px rgba(57,255,20,.6); }
+      .x-soon ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+      .x-soon li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; padding: 10px; border: 1px solid rgba(57,255,20,.25); border-radius: 8px; background: rgba(3,17,3,.6); }
+      .x-soon li i { font-style: normal; font-size: 22px; line-height: 1.2; text-align: center; }
+      .x-soon li b { display: block; font-size: 15px; }
+      .x-soon li small { color: var(--x-ink2); font-size: 13px; line-height: 1.35; }
       .x-badge { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--x-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: 4px; background: #031103; color: var(--x-green); border: 1px solid rgba(57, 255, 20, 0.5); box-shadow: 0 0 10px -2px rgba(57, 255, 20, 0.5); text-shadow: 0 0 5px rgba(57, 255, 20, 0.6); }
       .x-signed { text-shadow: 0 0 8px rgba(57, 255, 20, 0.7); font-family: var(--x-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
@@ -397,6 +404,16 @@
           <p class="x-lead">Sweep the tiny leftovers in your wallet into <b class="x-tick-sym">$DUSTY</b>.</p>
           <p class="x-note" style="justify-content: center; font-size: 13px"><svg><use href="#x-shield" /></svg>Works with MetaMask, Coinbase Wallet, Rabby and more.</p>
           <button class="x-btn" type="button" data-go="2" style="margin-top: 12px">Connect wallet</button>
+          <div class="x-card x-soon" data-label="SOON">
+            <h3>Coming soon</h3>
+            <ul>
+              <li><i>🎁</i><div><b>Mystery Dust Drops</b><small>Random NFT giveaways you can only collect with $DUSTY. Every drop is a surprise, revealed when you claim.</small></div></li>
+              <li><i>🛡️</i><div><b>Scam Shield</b><small>Flags fake airdropped tokens and lookalike addresses before you touch them.</small></div></li>
+              <li><i>🔥</i><div><b>Spam Burn Bin</b><small>Toss junk tokens you never asked for. Clean wallet, no clutter.</small></div></li>
+              <li><i>🏅</i><div><b>Recycler Ranks</b><small>Earn Sweeper, Recycler and Dust Lord badges as you clean up. Higher ranks unlock rarer drops.</small></div></li>
+              <li><i>🌍</i><div><b>Dust Drives</b><small>Community clean-up goals. Hit the target together and a special drop unlocks for everyone who joined.</small></div></li>
+            </ul>
+          </div>
         </section>
 
         <!-- 2 Connect -->
@@ -478,7 +495,7 @@
         <section class="x-screen x-win" data-step="5" aria-label="Done">
           <svg class="x-mark" id="x-winmark" aria-hidden="true"><use href="#x-logo" /></svg>
           <p class="x-amount" id="x-amount">+2,890 $DUSTY</p>
-          <p class="x-sub" style="margin-top: -8px">demo result · no transaction was sent</p>
+          <p class="x-sub" id="x-winsub" style="margin-top: -8px">demo result · no transaction was sent</p>
           <div class="x-card x-token" data-label="OUTPUT">
             <div class="x-token__head">
               <div class="x-coin"><svg aria-hidden="true"><use href="#x-logo" /></svg></div>
@@ -493,9 +510,19 @@
               <dt>Ticker</dt><dd class="x-tick-raw">DUSTY</dd>
               <dt>Network</dt><dd>Base Sepolia (testnet)</dd>
               <dt>Balance</dt><dd id="x-bal">2,890</dd>
-              <dt>Status</dt><dd>Demo · not minted yet</dd>
+              <dt>Status</dt><dd id="x-status">Demo · not minted yet</dd>
             </dl>
-            <button class="x-btn x-btn--grey" type="button" id="x-add">Add to wallet · soon</button>
+            <button class="x-btn x-btn--grey" type="button" id="x-add">Add $DUSTY to wallet</button>
+          </div>
+<div class="x-card x-soon" data-label="SOON">
+            <h3>Coming soon</h3>
+            <ul>
+              <li><i>🎁</i><div><b>Mystery Dust Drops</b><small>Random NFT giveaways you can only collect with $DUSTY. Every drop is a surprise, revealed when you claim.</small></div></li>
+              <li><i>🛡️</i><div><b>Scam Shield</b><small>Flags fake airdropped tokens and lookalike addresses before you touch them.</small></div></li>
+              <li><i>🔥</i><div><b>Spam Burn Bin</b><small>Toss junk tokens you never asked for. Clean wallet, no clutter.</small></div></li>
+              <li><i>🏅</i><div><b>Recycler Ranks</b><small>Earn Sweeper, Recycler and Dust Lord badges as you clean up. Higher ranks unlock rarer drops.</small></div></li>
+              <li><i>🌍</i><div><b>Dust Drives</b><small>Community clean-up goals. Hit the target together and a special drop unlocks for everyone who joined.</small></div></li>
+            </ul>
           </div>
           <button class="x-btn x-btn--red" type="button" id="x-again">Start over</button>
         </section>
@@ -1120,6 +1147,8 @@
           $("#x-amount").textContent = "+" + n(got) + " $" + TOKEN_TICKER;
           $("#x-bal").textContent = n(bal) + " (testnet)";
           stat("Done · testnet DUSTY minted (5% recycle fee applied)");
+          $("#x-winsub").textContent = "testnet transaction · Base Sepolia · no real value";
+          $("#x-status").textContent = "Minted on testnet";
           go(5);
         } catch (e) {
           stat("Error: " + ((e && (e.shortMessage || e.reason || e.message)) || "failed").slice(0, 140));
@@ -1182,6 +1211,7 @@
           })(fs);
           $("#x-amount").textContent = "+" + fmt(received) + " $" + TOKEN_TICKER;
           $("#x-bal").textContent = fmt(received) + " (demo)";
+          $("#x-winsub").textContent = "demo result · no transaction was sent"; $("#x-status").textContent = "Demo · not minted";
           const m = $("#x-winmark"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
           busy = false;
           go(5);
