@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Sign a message</title><meta name="robots" content="noindex">
+<link rel="icon" href="favicon-32.png"><meta name="theme-color" content="#060708">
+<style>*{box-sizing:border-box}body{margin:0;background:#060708;color:#e8fff0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.w{max-width:640px;margin:0 auto;padding:22px 16px 60px}h1{font-size:22px;margin:0 0 6px}p{color:#9fb3a6;margin:6px 0 14px}
+textarea{width:100%;min-height:130px;background:#0e1012;color:#e8fff0;border:1px solid #2a3a2e;border-radius:10px;padding:12px;font:14px/1.4 ui-monospace,Menlo,monospace}
+button{background:#39ff14;color:#041004;border:0;border-radius:10px;padding:13px 16px;font-weight:700;font-size:16px;width:100%;margin:8px 0}button.s{background:#1c2a20;color:#e8fff0}
+.box{background:#0e1012;border:1px solid #2a3a2e;border-radius:10px;padding:12px;word-break:break-all;font:13px/1.4 ui-monospace,Menlo,monospace;margin:6px 0}
+#msg2{color:#ffcf5a}.ok{color:#39ff14}.err{color:#ff6b6b}</style></head><body><div class="w">
+<img src="favicon-32.png" width="32" height="32" alt="Dusty"><h1>Sign a message</h1>
+<p>For explorer ownership proofs (Basescan, GeckoTerminal). Signing a text message is free, sends nothing, and moves no funds. This page only signs; it never sends a transaction.</p>
+<button id="bc">Connect MetaMask</button><div id="acct" class="box" hidden></div>
+<label>Message to sign (paste it exactly):</label><textarea id="m" spellcheck="false" placeholder="Paste the exact message here"></textarea>
+<button id="bs">Sign message</button><div id="st"></div>
+<div id="out" hidden><label>Signature:</label><div id="sig" class="box"></div><button id="bk" class="s">Copy signature</button>
+<label>Signed by:</label><div id="by" class="box"></div></div></div>
+<script>
+const $=id=>document.getElementById(id);let acct=null;
+const say=(t,c)=>{$("st").textContent=t;$("st").className=c||""};
+const hex=s=>"0x"+Array.from(new TextEncoder().encode(s)).map(b=>b.toString(16).padStart(2,"0")).join("");
+async function connect(){if(!window.ethereum){say("Open this page in the MetaMask app browser.","err");return null}
+const a=await ethereum.request({method:"eth_requestAccounts"});acct=a[0];$("acct").hidden=false;$("acct").textContent="Connected: "+acct;return acct}
+$("bc").onclick=()=>connect().catch(e=>say(e.message||String(e),"err"));
+$("bs").onclick=async()=>{try{const m=$("m").value;if(!m){say("Paste the message first.","err");return}
+if(!acct)await connect();if(!acct)return;
+const a=(await ethereum.request({method:"eth_accounts"}))[0]||acct;acct=a;$("acct").textContent="Connected: "+a;
+say("Check MetaMask to sign…");const sig=await ethereum.request({method:"personal_sign",params:[hex(m),a]});
+$("sig").textContent=sig;$("by").textContent=a;$("out").hidden=false;say("Signed. Copy the signature and paste it back.","ok")}catch(e){say(e.message||String(e),"err")}};
+$("bk").onclick=async()=>{try{await navigator.clipboard.writeText($("sig").textContent);say("Copied.","ok")}catch(e){const r=document.createRange();r.selectNodeContents($("sig"));getSelection().removeAllRanges();getSelection().addRange(r);say("Selected: press copy.","ok")}};
+</script></body></html>
