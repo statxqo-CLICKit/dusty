@@ -54,7 +54,7 @@ footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
 import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
 const SCAN="https://basescan.org";
 const DUSTY="__DUSTY__",REC="__RECYCLER__",SPLIT="__SPLIT__",RESERVE="__RESERVE__",STAN="__STAN__",ANDREA="__ANDREA__";
-const USDC="__USDC__",SPLIT_MAIN="__SPLIT_MAIN__",V3F="__V3_FACTORY__",V3NPM="__V3_NPM__",FROM=__DEPLOY_BLOCK__;
+const LP_ID=6525151n,USDC="__USDC__",SPLIT_MAIN="__SPLIT_MAIN__",V3F="__V3_FACTORY__",V3NPM="__V3_NPM__",FROM=__DEPLOY_BLOCK__;
 const LRT="__LOCK_RT__",LIMM=__LOCK_IMM__,UNLOCK=__UNLOCK__n,LOCK_AMT=ethers.parseUnits("__LOCK_AMT__",18);
 const RPCS=["https://mainnet.base.org","https://base-rpc.publicnode.com","https://base.llamarpc.com"];
 const $=id=>document.getElementById(id);
@@ -94,7 +94,7 @@ async function run(){
  const other=sup-resBal-lockBal;
  $("bar").innerHTML=`<i style="width:${pct(lockBal,sup)};background:#2f7bff"></i><i style="width:${pct(resBal,sup)};background:#39ff88"></i><i style="width:${pct(other,sup)};background:#ffcf5a"></i>`;
  $("leg").innerHTML=`<span><b style="background:#2f7bff"></b>Locked</span><span><b style="background:#39ff88"></b>Reserve (unlocked)</span><span><b style="background:#ffcf5a"></b>All other wallets</span>`;
- rows("supply",[["Token",link(DUSTY,"token",sym+" · "+short(DUSTY))],["Total supply now",fD(sup)+" DUSTY"],["Hard cap (can never be exceeded)",fD(cap)+" DUSTY"],
+ rows("supply",[["Token",link(DUSTY,"token",sym+" · "+short(DUSTY))],["Total supply now",fD(sup)+" DUSTY"],["Hard cap (can never be exceeded)",fD(cap)+" DUSTY"],["Supply history","5,000,000 at deploy + 50,000 minted once to seed the Uniswap pool (Nov 9, 2026) = 5,050,000. Any later increase is Recycler rewards."],
   ["Locked in reserve lock",fD(lockBal)+" ("+pct(lockBal,sup)+")"],["Dusty Rewards Reserve, unlocked",fD(resBal)+" ("+pct(resBal,sup)+")"],["All other wallets (rewards earned, pool)",fD(other)+" ("+pct(other,sup)+")"]]);
  if(lock){const L=new ethers.Contract(lock,LABI,p);const [tk,ben,rt]=await Promise.all([L.token(),L.beneficiary(),L.releaseTime()]);
   const left=Number(rt)-blk.timestamp,days=Math.max(0,Math.ceil(left/86400));
@@ -114,8 +114,15 @@ async function run(){
  rows("fees",[["Recycle fee",(Number(fee)/100)+"% <small>(contract maximum "+(Number(mf)/100)+"%)</small>"],["Fees go to",link(tr)+" "+yes(ethers.getAddress(tr)===ethers.getAddress(SPLIT),"0xSplits split")],
   ["Split",yes(sh===h,"50% "+short(STAN)+" (Stan) · 50% "+short(ANDREA)+" (Andrea)","split recipients do not match")],["Split can be changed",sc===ethers.ZeroAddress?'<span class="ok">✓ never (no controller)</span>':'<span class="bad">yes, controller '+short(sc)+'</span>']]);
  const f=new ethers.Contract(V3F,["function getPool(address,address,uint24) view returns (address)"],p);const pool=await f.getPool(DUSTY,USDC,10000);
- rows("pool",pool===ethers.ZeroAddress?[["DUSTY/USDC Uniswap v3 (1%)","Not created yet"],["LP position will be held by",link(STAN)+" (Stan's wallet)"]]:
-  [["DUSTY/USDC Uniswap v3 (1%)",link(pool)],["Pool balances",tokLink(pool,"DUSTY in pool")],["LP position NFT holder",link(STAN)+" (Stan's wallet) · <a target=_blank rel=noopener href=\""+SCAN+"/token/"+V3NPM+"?a="+STAN+"\">positions</a>"]]);
+ if(pool===ethers.ZeroAddress)rows("pool",[["DUSTY/USDC Uniswap v3 (1%)","Not created yet"],["LP position will be held by",link(STAN)+" (Stan's wallet)"]]);
+ else{const E=["function balanceOf(address) view returns (uint256)"],P=new ethers.Contract(pool,["function liquidity() view returns (uint128)","function fee() view returns (uint24)"],p),
+   N=new ethers.Contract(V3NPM,["function ownerOf(uint256) view returns (address)","function positions(uint256) view returns (uint96,address,address token0,address token1,uint24 fee,int24 tickLower,int24 tickUpper,uint128 liquidity,uint256,uint256,uint128,uint128)"],p);
+  const [pl,pf,pd,pu,own,pos]=await Promise.all([P.liquidity(),P.fee(),new ethers.Contract(DUSTY,E,p).balanceOf(pool),new ethers.Contract(USDC,E,p).balanceOf(pool),N.ownerOf(LP_ID).catch(()=>null),N.positions(LP_ID).catch(()=>null)]);
+  const full=pos&&Number(pos.tickLower)===-887200&&Number(pos.tickUpper)===887200,pairOk=pos&&[pos.token0,pos.token1].map(a=>ethers.getAddress(a)).sort().join()==[DUSTY,USDC].map(a=>ethers.getAddress(a)).sort().join()&&Number(pos.fee)===10000;
+  rows("pool",[["DUSTY/USDC Uniswap v3 ("+(Number(pf)/10000)+"%)",link(pool,"address",pool)],["Pool holds",fD(pd)+" DUSTY + "+Number(ethers.formatUnits(pu,6)).toLocaleString("en-US",{maximumFractionDigits:2})+" USDC "+tokLink(pool,"(Basescan)")],
+   ["Pool liquidity",pl>0n?'<span class="ok">✓ active</span>':'<span class="warn">none</span>'],
+   ["LP position",'<a target=_blank rel=noopener href="https://app.uniswap.org/positions/v3/base/'+LP_ID+'">#'+LP_ID+'</a> '+(pos?yes(pairOk&&full&&pos.liquidity>0n,"DUSTY/USDC 1%, full range, liquidity in","position does not match"):'<span class="bad">not found</span>')],
+   ["LP position held by",own?link(own,"address",own)+(ethers.getAddress(own)===ethers.getAddress(STAN)?" (Stan's wallet)":' <span class="warn">(not Stan\'s wallet)</span>'):'<span class="bad">unknown</span>']])}
  const [ta,ra,dl]=await Promise.all([t.owner(),r.owner(),t.defaultAdminDelay()]);
  rows("admin",[["Token admin",link(ta)+(ethers.getAddress(ta)===ethers.getAddress(STAN)?" (Stan)":"")],["Recycler admin",link(ra)+(ethers.getAddress(ra)===ethers.getAddress(STAN)?" (Stan)":"")],["Admin hand-over delay",(Number(dl)/86400)+" days"]]);
  rows("contracts",[["DUSTY token",link(DUSTY,"token",DUSTY)],["Recycler",link(REC,"address",REC)],["Fee split (0xSplits)",link(SPLIT,"address",SPLIT)],["Reserve lock",lock?link(lock,"address",lock):"not deployed yet"],["Dusty Rewards Reserve",link(RESERVE,"address",RESERVE)],["Admin (Stan)",link(STAN,"address",STAN)]]);
