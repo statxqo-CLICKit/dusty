@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Deploy v2 (testnet)</title><meta name="robots" content="noindex">
+<style>body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:480px;width:100%;padding:24px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+.step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:16px;margin:14px 0}
+.step b{color:#39ff88}button{width:100%;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
+button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:13px monospace;margin-top:6px}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}label{display:block;margin-top:8px}</style></head>
+<body><main><h1>Deploy Dusty v2</h1><small>Base Sepolia testnet only · unaudited · no real value · you sign every step in your own wallet (MetaMask). Not financial advice.</small>
+<div class="step"><b>1. Connect</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect wallet</button>
+<small>No test ETH? <a href="https://portal.cdp.coinbase.com/onchain-tools/faucet" target="_blank" rel="noopener">Coinbase faucet (Base Sepolia ETH)</a></small></div>
+
+<div class="step"><b>2. Roles</b><small><br>Keep these separate if you can. On testnet admin and guardian may be the same wallet. The quote signer must be different from all of them.</small>
+<label><small>Admin / owner (later: your Safe)</small><input id="admin" placeholder="connected wallet"></label>
+<label><small>Guardian (can pause only)</small><input id="guardian" placeholder="connected wallet"></label>
+<label><small>Treasury (receives all dust; ideally a separate wallet)</small><input id="treas" placeholder="connected wallet"></label>
+<label><small>Quote signer (from the Dusty quote service)</small><input id="signer" placeholder="tap Fetch"></label>
+<button id="bFetch">Fetch signer from quote service</button>
+<label><small><input type="checkbox" id="sigOk" style="width:auto"> I checked this signer address matches the one Hark gave me</small></label>
+<label><small>Fee (500 = 5%, max 1000)</small><input id="fee" value="500" inputmode="numeric"></label>
+<label><small>Admin transfer delay, seconds (testnet 0; mainnet 172800)</small><input id="delay" value="0" inputmode="numeric"></label>
+<label><small>Recycler mint budget on the token, whole DUSTY</small><input id="allow" value="100000000" inputmode="numeric"></label>
+<div class="out" id="rolesOut"></div></div>
+
+<div class="step"><b>3. Deploy DUSTY token v2</b><small><br>Starting supply 0. The admin cannot mint by itself.</small><input id="tok" placeholder="token address (fills after deploy, or paste to resume)"><button id="bTok">Deploy token</button><div class="out" id="tout"></div></div>
+<div class="step"><b>4. Deploy Recycler v2</b><input id="rec" placeholder="recycler address (fills after deploy, or paste to resume)"><button id="bRec">Deploy recycler</button><div class="out" id="rout"></div></div>
+<div class="step"><b>5. Let the Recycler mint (with a budget)</b><small><br>Admin wallet signs: token.setMinter(recycler, true, budget)</small><button id="bMint">Allow Recycler</button><div class="out" id="mout"></div></div>
+<div class="step"><b>6. Allow test USDC</b><small><br>Admin wallet signs: recycler.setAllowedToken(USDC, true)<br>USDC: __USDC__</small><button id="bUsdc">Allow USDC</button><div class="out" id="uout"></div></div>
+<div class="step"><b>7. Check and copy</b><small><br>Reads everything back from the chain. Send the block below to Hark.</small><button id="bCheck">Check setup</button><div class="out" id="cout"></div><button id="bCopy" disabled>Copy addresses</button></div>
+<small>Admin tasks later (pause, signer, limits, ownership transfer): <a href="recycler.html">Dusty admin console</a> · <a href="terms.html">Terms</a></small>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const TABI=__TOKEN_ABI__;
+const TBC="__TOKEN_BC__";
+const RABI=__REC_ABI__;
+const RBC="__REC_BC__";
+const USDC="__USDC__",QUOTE="https://dusty-quote.statxqo.workers.dev";
+const CHAIN=84532n,HEX="0x14a34";let signer,me;const $=id=>document.getElementById(id);
+const err=(id,e)=>{$(id).textContent="Error: "+(e.shortMessage||e.reason||e.message)};
+const A=v=>ethers.getAddress(v.trim());
+for(const k of ["tok","rec","signer"]){const v=localStorage.getItem("dv2_"+k);if(v)$(k).value=v}
+async function connect(){try{
+ if(!window.ethereum){location.href="https://metamask.app.link/dapp/"+location.host+location.pathname;return}
+ await ethereum.request({method:"eth_requestAccounts"});
+ try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
+  await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base Sepolia",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://sepolia.base.org"],blockExplorerUrls:["https://sepolia.basescan.org"]}]})}
+ const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
+ if(n.chainId!==CHAIN){$("who").textContent="Switch your wallet to Base Sepolia, then tap Connect again.";signer=null;return}
+ signer=await p.getSigner();me=await signer.getAddress();const bal=await p.getBalance(me);
+ for(const k of ["admin","guardian","treas"]) if(!$(k).value) $(k).value=me;
+ $("who").textContent=me+"  ·  "+ethers.formatEther(bal).slice(0,8)+" test ETH";
+}catch(e){err("who",e)}}
+async function need(){if(!signer)await connect();if(!signer)throw new Error("connect your wallet first (step 1)");const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base Sepolia")}
+function roles(){
+ const r={admin:A($("admin").value||me),guardian:A($("guardian").value||me),treas:A($("treas").value||me),signer:A($("signer").value),
+  fee:Number($("fee").value),delay:BigInt($("delay").value||"0"),allow:ethers.parseUnits(($("allow").value||"0").trim(),18)};
+ if(!$("sigOk").checked)throw new Error("tick the box after checking the signer address");
+ if([r.admin,r.guardian,r.treas].includes(r.signer))throw new Error("quote signer must differ from admin, guardian and treasury");
+ if(!(r.fee>=0&&r.fee<=1000))throw new Error("fee must be 0-1000");
+ const w=[];if(r.treas===r.admin)w.push("treasury = admin (ok for testnet, use a separate wallet for mainnet)");if(r.guardian===r.admin)w.push("guardian = admin (ok for testnet)");
+ $("rolesOut").innerHTML=w.map(x=>'<span class="warn">⚠ '+x+'</span>').join("<br>");return r}
+$("bConnect").onclick=connect;
+$("bFetch").onclick=async()=>{try{const h=await (await fetch(QUOTE+"/health")).json();if(!h.signer)throw new Error("signer not ready");$("signer").value=h.signer;localStorage.setItem("dv2_signer",h.signer);
+ $("rolesOut").textContent="Quote service signer: "+h.signer+"\nCompare it with the address Hark gave you, then tick the box."}catch(e){err("rolesOut",e)}};
+$("bTok").onclick=async()=>{try{await need();const r=roles();$("bTok").disabled=true;$("tout").textContent="Confirm in your wallet…";
+ const c=await new ethers.ContractFactory(TABI,TBC,signer).deploy(r.admin,r.delay,r.guardian,0n);
+ $("tout").textContent="Deploying… tx "+c.deploymentTransaction().hash;await c.waitForDeployment();const a=await c.getAddress();$("tok").value=a;localStorage.setItem("dv2_tok",a);
+ $("tout").innerHTML="Token v2: "+a+'<br><a target="_blank" href="https://sepolia.basescan.org/address/'+a+'">View on Basescan</a>';
+}catch(e){err("tout",e);$("bTok").disabled=false}};
+$("bRec").onclick=async()=>{try{await need();const r=roles();const tok=A($("tok").value);$("bRec").disabled=true;$("rout").textContent="Confirm in your wallet…";
+ const c=await new ethers.ContractFactory(RABI,RBC,signer).deploy(r.admin,r.delay,r.guardian,tok,r.treas,r.signer,r.fee);
+ $("rout").textContent="Deploying… tx "+c.deploymentTransaction().hash;await c.waitForDeployment();const a=await c.getAddress();$("rec").value=a;localStorage.setItem("dv2_rec",a);
+ $("rout").innerHTML="Recycler v2: "+a+'<br><a target="_blank" href="https://sepolia.basescan.org/address/'+a+'">View on Basescan</a>';
+}catch(e){err("rout",e);$("bRec").disabled=false}};
+$("bMint").onclick=async()=>{try{await need();const r=roles();$("bMint").disabled=true;$("mout").textContent="Confirm in your wallet (admin)…";
+ const t=new ethers.Contract(A($("tok").value),TABI,signer);await (await t.setMinter(A($("rec").value),true,r.allow)).wait();$("mout").textContent="Recycler can mint up to "+$("allow").value+" DUSTY ✓";
+}catch(e){err("mout",e);$("bMint").disabled=false}};
+$("bUsdc").onclick=async()=>{try{await need();$("bUsdc").disabled=true;$("uout").textContent="Confirm in your wallet (admin)…";
+ const c=new ethers.Contract(A($("rec").value),RABI,signer);await (await c.setAllowedToken(USDC,true)).wait();$("uout").textContent="USDC allowed ✓";
+}catch(e){err("uout",e);$("bUsdc").disabled=false}};
+let block="";
+$("bCheck").onclick=async()=>{try{await need();const tA=A($("tok").value),rA=A($("rec").value);
+ const t=new ethers.Contract(tA,TABI,signer.provider),c=new ethers.Contract(rA,RABI,signer.provider);
+ const [tOwner,rOwner,sig,tr,fee,pq,dc,isM,al,ok,paused,tp,g]=await Promise.all([t.owner(),c.owner(),c.quoteSigner(),c.treasury(),c.feeBps(),c.maxDustyPerQuote(),c.dailyMintCap(),t.isMinter(rA),t.minterAllowance(rA),c.allowedToken(USDC),c.paused(),t.paused(),c.hasRole(await c.PAUSER_ROLE(),A($("guardian").value||me))]);
+ const f=v=>ethers.formatUnits(v,18);const good=isM&&ok&&!paused&&!tp&&sig!==tr&&sig!==rOwner;
+ block=`// ---- DUSTY DEPLOYMENT CONFIG (Base Sepolia, v2) ----\nconst TOKEN_ADDRESS = "${tA}";\nconst RECYCLER_ADDRESS = "${rA}";\n// Worker variable: RECYCLER_V2 = ${rA}`;
+ $("cout").textContent=(good?"✓ Setup looks right\n":"⚠ Something is missing (see below)\n")+
+  `token owner ${tOwner}\nrecycler owner ${rOwner}\nquote signer ${sig}\ntreasury ${tr}\nfee ${fee} bps\nper quote max ${f(pq)} DUSTY\nper 24h max ${f(dc)} DUSTY\nrecycler is minter ${isM} · budget ${f(al)} DUSTY\nUSDC allowed ${ok}\nrecycler paused ${paused} · token minting paused ${tp}\nguardian can pause ${g}\n\n`+block;
+ $("bCopy").disabled=false;
+}catch(e){err("cout",e)}};
+$("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(block);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",block)}};
+</script></body></html>

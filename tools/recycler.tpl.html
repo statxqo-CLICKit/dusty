@@ -1,0 +1,78 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Admin console v2 (testnet)</title><meta name="robots" content="noindex">
+<style>body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:480px;width:100%;padding:24px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+.step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:16px;margin:14px 0}
+.step b{color:#39ff88}button{width:100%;padding:12px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:15px;margin-top:8px}
+button.red{background:#ff5a5a;color:#fff}button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:13px monospace;margin-top:6px}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}</style></head>
+<body><main><h1>Dusty admin console</h1><small>v2 contracts · Base Sepolia testnet only · unaudited · no real value. Each button is one transaction you sign in MetaMask. New deploy? Use <a href="deploy.html">Deploy v2</a>.</small>
+<div class="step"><b>Contracts</b><input id="tok" placeholder="DUSTY token v2 address"><input id="rec" placeholder="Recycler v2 address">
+<button id="bConnect">Connect wallet</button><div class="out" id="who">Not connected</div><button id="bStatus">Read status</button><div class="out" id="st"></div></div>
+
+<div class="step"><b>Emergency (guardian)</b><small><br>Guardian or admin can pause. Only the admin can unpause.</small>
+<button class="red" id="bPause">Pause recycling</button><button class="red" id="bPauseMint">Pause ALL minting (token)</button>
+<button id="bUnpause">Unpause recycling (admin)</button><button id="bUnpauseMint">Unpause minting (admin)</button><div class="out" id="eout"></div></div>
+
+<div class="step"><b>Quote signer (admin)</b><small><br>Type or paste the new address yourself and compare it with the one Hark gave you. Do not trust a value you did not check.</small>
+<input id="newSigner" placeholder="new signer address"><button id="bSigner">Set quote signer</button><div class="out" id="sout"></div></div>
+
+<div class="step"><b>Treasury and fee (admin)</b><input id="newTreas" placeholder="new treasury address"><button id="bTreas">Set treasury</button>
+<input id="newFee" placeholder="fee bps (500 = 5%, max 1000)" inputmode="numeric"><button id="bFee">Set fee</button><div class="out" id="tfout"></div></div>
+
+<div class="step"><b>Limits (admin)</b><small><br>Hard ceilings in the contract: 100,000 DUSTY per quote, 10,000,000 DUSTY per 24h.</small>
+<input id="perQ" placeholder="max DUSTY per quote (default 10000)" inputmode="numeric"><input id="perD" placeholder="max DUSTY per 24h (default 1000000)" inputmode="numeric">
+<button id="bLimits">Set limits</button><div class="out" id="lout"></div></div>
+
+<div class="step"><b>Dust token allowlist (admin)</b><input id="dtok" placeholder="dust token address"><button id="bAllow">Allow token</button><button id="bDeny">Remove token</button><div class="out" id="aout"></div></div>
+
+<div class="step"><b>Recycler mint budget (admin, token)</b><input id="budget" placeholder="remaining budget in whole DUSTY" inputmode="numeric"><button id="bBudget">Set budget</button><button class="red" id="bRevoke">Revoke recycler minting</button><div class="out" id="bout"></div></div>
+
+<div class="step"><b>Move ownership (e.g. to a Safe)</b><small><br>Two steps, both contracts: 1) current admin starts the transfer. 2) after the delay, the NEW admin (your Safe) taps Accept. Until then nothing changes, and the current admin can cancel.</small>
+<input id="newAdmin" placeholder="new admin address (your Safe)"><button id="bBegin">1. Start transfer (current admin)</button><button id="bAccept">2. Accept (new admin)</button><button class="red" id="bCancel">Cancel pending transfer</button><div class="out" id="oout"></div></div>
+<small><a href="terms.html">Terms</a> · Not financial advice.</small>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const TABI=__TOKEN_ABI__;
+const RABI=__REC_ABI__;
+const CHAIN=84532n,HEX="0x14a34";let signer,me;const $=id=>document.getElementById(id);
+for(const k of ["tok","rec"]){const v=localStorage.getItem("dv2_"+k);if(v)$(k).value=v}
+const A=v=>ethers.getAddress(v.trim());const W=v=>ethers.parseUnits(v.trim(),18);
+async function connect(){try{
+ if(!window.ethereum){location.href="https://metamask.app.link/dapp/"+location.host+location.pathname;return}
+ await ethereum.request({method:"eth_requestAccounts"});
+ try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
+  await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base Sepolia",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://sepolia.base.org"],blockExplorerUrls:["https://sepolia.basescan.org"]}]})}
+ const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
+ if(n.chainId!==CHAIN){$("who").textContent="Switch your wallet to Base Sepolia, then tap Connect again.";signer=null;return}
+ signer=await p.getSigner();me=await signer.getAddress();$("who").textContent="Connected: "+me;
+}catch(e){$("who").textContent="Error: "+(e.shortMessage||e.message)}}
+$("bConnect").onclick=connect;
+const T=()=>new ethers.Contract(A($("tok").value),TABI,signer);const R=()=>new ethers.Contract(A($("rec").value),RABI,signer);
+function act(btn,out,fn,okMsg){$(btn).onclick=async()=>{try{if(!signer)await connect();if(!signer)return;
+ const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base Sepolia");
+ $(btn).disabled=true;$(out).textContent="Confirm in your wallet…";const txs=await fn();for(const tx of [].concat(txs))await tx.wait();$(out).textContent=okMsg+" ✓";
+}catch(e){$(out).textContent="Error: "+(e.shortMessage||e.reason||e.message)}finally{$(btn).disabled=false}}}
+act("bPause","eout",()=>R().pause(),"Recycling paused");
+act("bPauseMint","eout",()=>T().pauseMinting(),"All minting paused");
+act("bUnpause","eout",()=>R().unpause(),"Recycling unpaused");
+act("bUnpauseMint","eout",()=>T().unpauseMinting(),"Minting unpaused");
+act("bSigner","sout",()=>R().setQuoteSigner(A($("newSigner").value)),"Quote signer set");
+act("bTreas","tfout",()=>R().setTreasury(A($("newTreas").value)),"Treasury set");
+act("bFee","tfout",()=>R().setFee(Number($("newFee").value)),"Fee set");
+act("bLimits","lout",()=>R().setLimits(W($("perQ").value),W($("perD").value)),"Limits set");
+act("bAllow","aout",()=>R().setAllowedToken(A($("dtok").value),true),"Token allowed");
+act("bDeny","aout",()=>R().setAllowedToken(A($("dtok").value),false),"Token removed");
+act("bBudget","bout",()=>T().setMinter(A($("rec").value),true,W($("budget").value)),"Budget set");
+act("bRevoke","bout",()=>T().setMinter(A($("rec").value),false,0n),"Recycler minting revoked");
+act("bBegin","oout",async()=>{const a=A($("newAdmin").value);const t1=await R().beginDefaultAdminTransfer(a);const t2=await T().beginDefaultAdminTransfer(a);return [t1,t2]},"Transfer started on both contracts. New admin can accept after the delay");
+act("bAccept","oout",async()=>{const t1=await R().acceptDefaultAdminTransfer();const t2=await T().acceptDefaultAdminTransfer();return [t1,t2]},"Ownership accepted on both contracts");
+act("bCancel","oout",async()=>{const t1=await R().cancelDefaultAdminTransfer();const t2=await T().cancelDefaultAdminTransfer();return [t1,t2]},"Pending transfer cancelled");
+$("bStatus").onclick=async()=>{try{if(!signer)await connect();if(!signer)return;const p=signer.provider;
+ const t=new ethers.Contract(A($("tok").value),TABI,p),c=new ethers.Contract(A($("rec").value),RABI,p);const rA=await c.getAddress();
+ const [o,po,to,sig,tr,fee,pq,dc,rem,isM,al,pz,tp,sup,dl]=await Promise.all([c.owner(),c.pendingDefaultAdmin(),t.owner(),c.quoteSigner(),c.treasury(),c.feeBps(),c.maxDustyPerQuote(),c.dailyMintCap(),c.dailyMintRemaining(),t.isMinter(rA),t.minterAllowance(rA),c.paused(),t.paused(),t.totalSupply(),c.defaultAdminDelay()]);
+ const f=v=>Number(ethers.formatUnits(v,18)).toLocaleString();
+ $("st").textContent=`recycler owner ${o}\ntoken owner ${to}\npending owner ${po[0]===ethers.ZeroAddress?"none":po[0]+" (from "+new Date(Number(po[1])*1000).toLocaleString()+")"}\nadmin delay ${dl}s\nquote signer ${sig}\ntreasury ${tr}\nfee ${fee} bps\nper quote ${f(pq)} · per 24h ${f(dc)} · left now ${f(rem)} DUSTY\nrecycler minter ${isM} · budget ${f(al)} DUSTY\nrecycling paused ${pz} · minting paused ${tp}\nDUSTY supply ${f(sup)}`;
+}catch(e){$("st").textContent="Error: "+(e.shortMessage||e.message)}};
+</script></body></html>
