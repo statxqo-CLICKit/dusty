@@ -16,7 +16,7 @@ label{display:block;margin-top:10px}
 <body><main>
 <span class="badge">BASE MAINNET · REAL ETH GAS</span>
 <h1><img src="https://statxqo-clickit.github.io/dusty/token/dusty-256.png" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Treasury · 50/50 split</h1>
-<small>All recycled dust goes to a 0xSplits split owned by nobody: half to Stan, half to Andrea, fixed forever. Tap <b>Distribute fees</b> to pay both wallets in one transaction. Anyone can tap it; the money can only go to the two wallets below.</small>
+<small>All recycled dust goes to a 0xSplits split owned by nobody: half to Founder wallet A, half to Founder wallet B, fixed forever. Tap <b>Distribute fees</b> to pay both wallets in one transaction. Anyone can tap it; the money can only go to the two wallets below.</small>
 
 <div class="step" id="s1"><b>1. Connect on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
 
@@ -37,7 +37,7 @@ const SPLIT_MAIN="0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE";   // 0xSplits v1 
 const MULTICALL3="0xcA11bde05977b3631167028862bE2a173976CA11";   // Multicall3, same address on every chain
 const PAY=["0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd","0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2"].map(a=>ethers.getAddress(a));
 const ACCOUNTS=BigInt(PAY[0])<BigInt(PAY[1])?[PAY[0],PAY[1]]:[PAY[1],PAY[0]],PCT=[500000,500000];
-const NAME={[PAY[0]]:"Stan",[PAY[1]]:"Andrea"};
+const NAME={[PAY[0]]:"Founder wallet A",[PAY[1]]:"Founder wallet B"};
 const SABI=["function predictImmutableSplitAddress(address[],uint32[],uint32) view returns (address)","function getHash(address) view returns (bytes32)",
  "function getERC20Balance(address,address) view returns (uint256)","function distributeERC20(address,address,address[],uint32[],uint32,address)","function withdraw(address,uint256,address[])"];
 const MABI=["function aggregate3((address target,bool allowFailure,bytes callData)[]) payable returns ((bool success,bytes returnData)[])"];

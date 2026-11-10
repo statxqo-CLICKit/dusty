@@ -26,9 +26,9 @@ main["__V3_NPM__"] = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1"
 # checked with eth_getCode on mainnet.base.org (SplitMain 12693 bytes; walletImplementation() == SplitWallet 0xD94c…3B33; PERCENTAGE_SCALE 1e6)
 main["__SPLIT_MAIN__"] = "0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE"
 main["__MULTICALL3__"] = "0xcA11bde05977b3631167028862bE2a173976CA11"  # Multicall3 (code checked on Base)
-main["__STAN__"] = "0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd"
-main["__ANDREA__"] = "0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2"
-main["__RESERVE__"] = "0x4F9eb9a29c174Ec2a087545275Bf1e9070ef108C"  # Dusty Rewards Reserve wallet (Stan's; renamed from "Partner allocation" 2026-11-09)
+main["__ADMIN__"] = "0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd"
+main["__FOUNDER_B__"] = "0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2"
+main["__RESERVE__"] = "0x4F9eb9a29c174Ec2a087545275Bf1e9070ef108C"  # Dusty Rewards Reserve wallet (admin-held; renamed from "Partner allocation" 2026-11-09)
 # Mainnet v2 (deployed 2026-11-09, block 55486854)
 main["__DUSTY__"] = "0xAf47E82C6f7cB9E28bB0382a1FeAdBC6308FDDc1"
 main["__RECYCLER__"] = "0x199Fef502B969018091294a69e6634DA7aC9e64d"
@@ -46,7 +46,7 @@ main["__LOCK_IMM__"] = json.dumps({n: [r["start"] for r in _refs[k]] for n, k in
 main["__LOCK_SHA__"] = hashlib.sha256(lk["bytecode"]["object"].encode()).hexdigest()
 main["__UNLOCK__"] = "1825825200"
 main["__LOCK_AMT__"] = "4500000"
-# DustyLiquidityLock: Uniswap v3 position NFT #6525151 (USDC/DUSTY 1%) locked until the same unlock time; fees -> Stan
+# DustyLiquidityLock: Uniswap v3 position NFT #6525151 (USDC/DUSTY 1%) locked until the same unlock time; fees -> admin wallet
 lp = art("DustyLiquidityLock")
 _pr = lp["deployedBytecode"]["immutableReferences"]
 assert len(_pr) == 4
