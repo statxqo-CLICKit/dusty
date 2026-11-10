@@ -46,10 +46,24 @@ main["__LOCK_IMM__"] = json.dumps({n: [r["start"] for r in _refs[k]] for n, k in
 main["__LOCK_SHA__"] = hashlib.sha256(lk["bytecode"]["object"].encode()).hexdigest()
 main["__UNLOCK__"] = "1825825200"
 main["__LOCK_AMT__"] = "4500000"
+# DustyLiquidityLock: Uniswap v3 position NFT #6525151 (USDC/DUSTY 1%) locked until the same unlock time; fees -> Stan
+lp = art("DustyLiquidityLock")
+_pr = lp["deployedBytecode"]["immutableReferences"]
+assert len(_pr) == 4
+main["__LP_ABI__"] = json.dumps(lp["abi"], separators=(",", ":"))
+main["__LP_BC__"] = lp["bytecode"]["object"]
+main["__LP_RT__"] = lp["deployedBytecode"]["object"]
+main["__LP_IMM__"] = json.dumps({n: [r["start"] for r in _pr[k]] for n, k in zip(["positionManager", "tokenId", "beneficiary", "unlockTime"], sorted(_pr, key=int))}, separators=(",", ":"))
+main["__LP_SHA__"] = hashlib.sha256(lp["bytecode"]["object"].encode()).hexdigest()
+main["__LP_ID__"] = "6525151"
+main["__POOL__"] = "0x4E74fFa1eb8d549a772673939946599246f854B3"
 LOGO = "https://statxqo-clickit.github.io/dusty/token/dusty-256.png"
 main["__LOGO_URL__"] = LOGO
 sub["__LOGO_URL__"] = LOGO
+import sys
+_only = set(sys.argv[1:])  # optional: build only the named pages, e.g. `build-pages.py lock-reserve`
 for name, subs in (("deploy", sub), ("recycler", sub), ("deploy-mainnet", main), ("seed-pool", main), ("treasury", main), ("lock-reserve", main), ("transparency", main)):
+    if _only and name not in _only: continue
     s = (root / f"tools/{name}.tpl.html").read_text()
     for k, v in subs.items(): s = s.replace(k, v)
     import re as _re

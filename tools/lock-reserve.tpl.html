@@ -1,71 +1,73 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dusty · Lock the Rewards Reserve</title><meta name="robots" content="noindex">
+<title>Dusty · Lock reserve + liquidity</title><meta name="robots" content="noindex">
 <link rel="icon" href="favicon-32.png">
 <style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
-main{max-width:520px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+main{max-width:520px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}h2{font-size:18px;margin:0 0 6px;color:#39ff88}
 .step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:14px;margin:12px 0}
 .step b{color:#39ff88}.step.done{border-color:#39ff88}.step.run{border-color:#ffcf5a}.step.bad{border-color:#ff6b6b}
-button{width:100%;min-height:48px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
-button.sec{background:#1f3a2c;color:#e8fff0}button:disabled{background:#2a3d33;color:#7a9}
+button{width:100%;min-height:56px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:17px;margin-top:10px}
+button.sec{background:#1f3a2c;color:#e8fff0;min-height:48px;font-size:15px}button:disabled{background:#2a3d33;color:#7a9}
 .out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}.err{color:#ff8a8a}
 .badge{display:inline-block;background:#3a1010;color:#ffb3b3;border:1px solid #ff6b6b;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
-ol{margin:6px 0 0;padding-left:20px}li{margin:4px 0}li.done{color:#39ff88}li.now{color:#ffcf5a;font-weight:700}</style></head>
+.how{background:#1a1608;border:1px solid #5a4a12;border-radius:10px;padding:10px;margin-top:8px;font-size:14px}
+ol{margin:6px 0 0;padding-left:20px}li{margin:4px 0}li.done{color:#39ff88}li.done::after{content:" ✓"}li.now{color:#ffcf5a;font-weight:700}</style></head>
 <body><main>
 <span class="badge">BASE MAINNET · REAL ETH GAS</span>
-<h1><img src="__LOGO_URL__" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Lock the Rewards Reserve</h1>
-<small>Locks <b>4,500,000 DUSTY</b> from the Dusty Rewards Reserve wallet in a contract with no owner and no early withdraw, until <b id="unl"></b>. <b>500,000 DUSTY</b> stay in the reserve for rewards and listing costs. You sign every step in your own MetaMask. Contract is unaudited. Public: anyone can check it on the <a href="transparency.html">Transparency page</a>.</small>
+<h1><img src="__LOGO_URL__" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Lock reserve + liquidity</h1>
+<small>Locks the Uniswap pool position <b>#__LP_ID__</b> and <b>4,500,000 DUSTY</b> from the Dusty Rewards Reserve until <b id="unl"></b>. Both locks have no owner, no admin and no early withdraw. Pool trading fees keep going to Stan's wallet; the pool liquidity itself cannot be removed before the unlock. <b>500,000 DUSTY</b> stay unlocked in the reserve. You sign every step in your own MetaMask. Contracts are unaudited. Public: <a href="transparency.html">Transparency page</a>.</small>
 
-<div class="step" id="s1"><b>Plan</b>
-<ol id="plan">
-<li id="pA">Gas: send 0.0001 ETH to the Reserve wallet <small>(from Stan wallet 0x9b8E…c7Fd, only if the Reserve has no ETH)</small></li>
-<li id="pB">Switch MetaMask to the Reserve wallet 0x4F9e…108C</li>
-<li id="pC">Deploy the lock contract <small>(Reserve wallet signs)</small></li>
-<li id="pD">Send exactly 4,500,000 DUSTY into the lock <small>(Reserve wallet signs)</small></li>
-<li id="pE">Read back and check everything</li></ol>
-<div class="out" id="who">Not connected</div>
-<button id="bGo">Connect MetaMask</button>
+<div class="step" id="st1"><h2>Step 1 · Stan wallet 0x9b8E…c7Fd</h2>
+<ol><li id="p1">Deploy the liquidity lock</li><li id="p2">Move pool position #__LP_ID__ into the lock</li><li id="p3">Send 0.0001 ETH gas to the Reserve wallet <small>(skipped if it already has gas)</small></li></ol>
+<button id="b1">Connect MetaMask</button></div>
+
+<div class="step" id="st2"><h2>Step 2 · Reserve wallet 0x4F9e…108C</h2>
+<div class="how"><b>Switch account first:</b> in MetaMask tap the account name at the top → pick <b>Dusty Rewards Reserve (0x4F9e…108C)</b>. Then come back here and tap the button. The Reserve account must already be in this MetaMask app (imported). If it is not in the list, stop and tell Hark.</div>
+<ol><li id="p4">Deploy the reserve lock</li><li id="p5">Send exactly 4,500,000 DUSTY into the lock</li></ol>
+<button id="b2" disabled>Do Step 1 first</button></div>
+
+<div class="step"><div class="out" id="who">Not connected</div>
 <button id="bSwitch" class="sec" hidden>Pick a different MetaMask account</button>
 <div class="out" id="log"></div></div>
 
-<div class="step" id="s2"><b>Result</b><div class="out" id="res">Not locked yet.</div><button id="bCopy" class="sec" disabled>Copy result for Hark</button></div>
+<div class="step" id="sR"><h2>Result</h2><div class="out" id="res">Not locked yet.</div>
+<button id="bFees" class="sec" hidden>Collect pool fees to Stan (optional, anyone can tap)</button>
+<button id="bCopy" class="sec" disabled>Copy result for Hark</button></div>
 <small><a href="transparency.html">Transparency</a> · <a href="seed-pool.html">Seed the pool</a> · <a href="treasury.html">Treasury</a> · <a href="terms.html">Terms</a></small>
 </main>
 <script type="module">
 import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
-const LABI=__LOCK_ABI__;
-const LBC="__LOCK_BC__";
-const LRT="__LOCK_RT__";
-const LIMM=__LOCK_IMM__;
-const LSHA="__LOCK_SHA__";
+const LABI=__LOCK_ABI__,LBC="__LOCK_BC__",LRT="__LOCK_RT__",LIMM=__LOCK_IMM__,LSHA="__LOCK_SHA__";
+const PABI=__LP_ABI__,PBC="__LP_BC__",PRT="__LP_RT__",PIMM=__LP_IMM__,PSHA="__LP_SHA__";
 const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org";
-const DUSTY="__DUSTY__",RESERVE="__RESERVE__",STAN="__STAN__";
+const DUSTY="__DUSTY__",RESERVE="__RESERVE__",STAN="__STAN__",NPM="__V3_NPM__",LP_ID=__LP_ID__n;
 const UNLOCK=__UNLOCK__n,AMT=ethers.parseUnits("__LOCK_AMT__",18);
 const TOPUP=ethers.parseEther("0.0001"),MINGAS=ethers.parseEther("0.00004");
-const EABI=["function balanceOf(address) view returns (uint256)","function transfer(address,uint256) returns (bool)","function symbol() view returns (string)"];
+const EABI=["function balanceOf(address) view returns (uint256)","function transfer(address,uint256) returns (bool)"];
+const NABI=["function ownerOf(uint256) view returns (address)","function safeTransferFrom(address,address,uint256)","function positions(uint256) view returns (uint96,address,address,address,uint24,int24,int24,uint128,uint256,uint256,uint128,uint128)"];
 const LS="dlock_";const $=id=>document.getElementById(id);
-let prov,signer,me,busy=false,result="";
+let prov,signer,me,busy=false,result="",S=null;
 const say=(t,cls)=>{const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=t;$("log").appendChild(d)};
 const emsg=e=>(e&&(e.shortMessage||e.reason||e.info?.error?.message||e.message))||String(e);
 const A=v=>ethers.getAddress(String(v).trim());
-const short=a=>a.slice(0,6)+"…"+a.slice(-4);
 const link=(a,t)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${a.slice(0,10)}…${a.slice(-6)}</a>`;
 const fD=v=>Number(ethers.formatUnits(v,18)).toLocaleString("en-US");
+const sleep=ms=>new Promise(z=>setTimeout(z,ms));
 const when=new Date(Number(UNLOCK)*1000);
 const dateStr=when.toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"medium",timeStyle:"short"})+" PT ("+when.toISOString().replace(".000Z"," UTC").replace("T"," ")+", unix "+UNLOCK+")";
 $("unl").textContent=dateStr;
-// expected runtime code = compiled runtime with the three immutables filled in; anything else at the lock address is rejected
-function expectedRuntime(){const b=ethers.getBytes(LRT);const put=(starts,hex)=>{const w=ethers.getBytes(ethers.zeroPadValue(hex,32));for(const s of starts)b.set(w,s)};
- put(LIMM.token,DUSTY);put(LIMM.beneficiary,RESERVE);put(LIMM.releaseTime,ethers.toBeHex(UNLOCK));return ethers.hexlify(b)}
-const EXP_HASH=ethers.keccak256(expectedRuntime());
-(async()=>{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(LBC));const x=[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
- if(x!==LSHA){$("bGo").disabled=true;say("Bytecode check failed. Do not continue. Tell Hark.","err")}})();
+// expected runtime code = compiled runtime with immutables filled in; anything else at a lock address is rejected
+function fill(rt,imm,vals){const b=ethers.getBytes(rt);for(const [k,v] of Object.entries(vals)){const w=ethers.getBytes(ethers.zeroPadValue(v,32));for(const s of imm[k])b.set(w,s)}return ethers.keccak256(b)}
+const EXP_R=fill(LRT,LIMM,{token:DUSTY,beneficiary:RESERVE,releaseTime:ethers.toBeHex(UNLOCK)});
+const EXP_P=fill(PRT,PIMM,{positionManager:NPM,tokenId:ethers.toBeHex(LP_ID),beneficiary:STAN,unlockTime:ethers.toBeHex(UNLOCK)});
+(async()=>{for(const [bc,sha] of [[LBC,LSHA],[PBC,PSHA]]){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(bc));const x=[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+ if(x!==sha){$("b1").disabled=$("b2").disabled=true;say("Bytecode check failed. Do not continue. Tell Hark.","err")}}})();
 const mark=(id,c)=>{$(id).className=c||""};
-async function findLock(p){
- const saved=localStorage.getItem(LS+"lock");
- if(saved&&ethers.keccak256(await p.getCode(saved))===EXP_HASH)return A(saved);
- const n=await p.getTransactionCount(RESERVE,"latest");
- for(let i=0;i<Math.min(n,64);i++){const a=ethers.getCreateAddress({from:RESERVE,nonce:i});
-  const c=await p.getCode(a);if(c!=="0x"&&ethers.keccak256(c)===EXP_HASH){localStorage.setItem(LS+"lock",a);return a}}
+const isCode=async(p,a,h)=>ethers.keccak256(await p.getCode(a))===h;
+// find a lock deployed by `from` (CREATE addresses for each used nonce), newest first
+async function scan(p,from,h,key){
+ const saved=localStorage.getItem(LS+key);if(saved&&await isCode(p,saved,h))return A(saved);
+ const n=await p.getTransactionCount(from,"latest");
+ for(let i=n-1;i>=0&&i>=n-64;i--){const a=ethers.getCreateAddress({from,nonce:i});if(await isCode(p,a,h)){localStorage.setItem(LS+key,a);return a}}
  return null}
 async function connect(){
  if(!window.ethereum){$("who").innerHTML='No wallet found in this browser. Open this page inside the MetaMask app: tap <b>Browser</b>, then paste <b>'+location.host+location.pathname+'</b>. <a href="https://metamask.app.link/dapp/'+location.host+location.pathname+'">Open in MetaMask</a>';return false}
@@ -75,92 +77,120 @@ async function connect(){
  prov=new ethers.BrowserProvider(window.ethereum,"any",{cacheTimeout:-1});
  if((await prov.getNetwork()).chainId!==CHAIN){$("who").innerHTML='<span class="err">Wallet is not on Base (8453). Switch to Base in MetaMask.</span>';signer=null;return false}
  signer=await prov.getSigner();me=A(await signer.getAddress());$("bSwitch").hidden=false;return true}
-// Base fees are tiny; set them explicitly so no wallet/default inflates the priority fee (ethers default 1 gwei would need ~0.0004 ETH)
+// Base fees are tiny; set them explicitly so no wallet default inflates the priority fee
 async function fees(){const [b,fd]=await Promise.all([prov.getBlock("latest"),prov.getFeeData()]);const cap=ethers.parseUnits("0.01","gwei");
  let pr=fd.maxPriorityFeePerGas??ethers.parseUnits("0.001","gwei");if(pr>cap)pr=cap;const base=b.baseFeePerGas??ethers.parseUnits("0.01","gwei");
  return {maxPriorityFeePerGas:pr,maxFeePerGas:base*3n+pr}}
-async function onChain(){if(!signer)throw new Error("connect first");if((await prov.getNetwork()).chainId!==CHAIN)throw new Error("wallet left Base (8453); switch back to Base")}
-// one button: works out the next step from chain state and the connected account
+// re-read the account MetaMask has selected right now (not a cached signer) before every signature
+async function onChain(who,name){if(!signer)throw new Error("connect first");if((await prov.getNetwork()).chainId!==CHAIN)throw new Error("wallet left Base (8453); switch back to Base");
+ const acc=(await ethereum.request({method:"eth_accounts"}))[0];if(!acc||A(acc)!==A(who)||A(await signer.getAddress())!==A(who)){await connect();throw new Error("MetaMask account is not "+name+". Switch accounts and tap again")}}
+// reads the whole state from chain; every step is skipped once it is done
 async function refresh(){
- const p=prov,t=new ethers.Contract(DUSTY,EABI,p);
- const [resEth,resBal,meEth]=await Promise.all([p.getBalance(RESERVE),t.balanceOf(RESERVE),p.getBalance(me)]);
- const lock=await findLock(p);const lockBal=lock?await t.balanceOf(lock):0n;
+ const p=prov,t=new ethers.Contract(DUSTY,EABI,p),n=new ethers.Contract(NPM,NABI,p);
+ const [resEth,resBal,meEth,nftOwner]=await Promise.all([p.getBalance(RESERVE),t.balanceOf(RESERVE),p.getBalance(me),n.ownerOf(LP_ID)]);
+ let lp=null;if(await isCode(p,nftOwner,EXP_P))lp=A(nftOwner);else lp=await scan(p,STAN,EXP_P,"lplock");
+ const rl=await scan(p,RESERVE,EXP_R,"lock");const rlBal=rl?await t.balanceOf(rl):0n;
+ const lpDone=!!lp&&A(nftOwner)===lp,resDone=!!rl&&rlBal>=AMT,gasOk=resEth>=MINGAS||resDone;
+ const s={resEth,resBal,meEth,nftOwner:A(nftOwner),lp,lpDone,rl,rlBal,resDone,gasOk};
  const role=me===A(STAN)?"Stan wallet":me===A(RESERVE)?"Dusty Rewards Reserve":"⚠ not a Dusty wallet";
- $("who").innerHTML="Connected: "+link(me)+" ("+role+") · "+Number(ethers.formatEther(meEth)).toFixed(6)+" ETH\nReserve: "+fD(resBal)+" DUSTY · "+Number(ethers.formatEther(resEth)).toFixed(6)+" ETH"+(lock?"\nLock: "+link(lock)+" · "+fD(lockBal)+" DUSTY":"");
- const s={resEth,resBal,lock,lockBal,me};
- for(const id of ["pA","pB","pC","pD","pE"])mark(id);
- if(lock&&lockBal>=AMT){for(const id of ["pA","pB","pC","pD"])mark(id,"done");mark("pE","now");s.next="done";return s}
- if(lock&&lockBal>0n){s.next="partial";return s}
- const gasOk=resEth>=MINGAS;if(gasOk)mark("pA","done");
- if(lock)mark("pC","done");
- if(!gasOk){mark("pA","now");s.next=me===A(STAN)?"topup":"needStan";return s}
- if(me!==A(RESERVE)){mark("pB","now");s.next="needReserve";return s}
- mark("pB","done");mark(lock?"pD":"pC","now");s.next="lock";return s}
+ $("who").innerHTML="Connected: "+link(me)+" ("+role+") · "+Number(ethers.formatEther(meEth)).toFixed(6)+" ETH"+
+  "\nPool position #"+LP_ID+" owner: "+link(s.nftOwner)+(lpDone?" (liquidity lock ✓)":"")+
+  "\nReserve: "+fD(resBal)+" DUSTY · "+Number(ethers.formatEther(resEth)).toFixed(6)+" ETH"+(rl?"\nReserve lock: "+link(rl)+" · "+fD(rlBal)+" DUSTY":"");
+ mark("p1",lp?"done":"");mark("p2",lpDone?"done":"");mark("p3",gasOk?"done":"");mark("p4",rl?"done":"");mark("p5",resDone?"done":"");
+ s.step1=lpDone&&gasOk;
+ if(!lp)mark("p1","now");else if(!lpDone)mark("p2","now");else if(!gasOk)mark("p3","now");else if(!rl)mark("p4","now");else if(!resDone)mark("p5","now");
+ $("st1").className="step "+(s.step1?"done":"run");$("st2").className="step "+(s.resDone?"done":s.step1?"run":"");
+ return S=s}
 function label(s){
- const b=$("bGo");b.disabled=false;
- if(!s){b.textContent="Connect MetaMask";return}
- ({done:()=>{b.textContent="Locked ✓ (tap to re-check)"},
-  partial:()=>{b.textContent="Re-check";say("The lock holds "+fD(s.lockBal)+" DUSTY, not 4,500,000. Do not send more. Tell Hark.","err")},
-  topup:()=>{b.textContent="1. Send 0.0001 ETH gas to the Reserve"},
-  needStan:()=>{b.textContent="Switch to Stan wallet (0x9b8E…c7Fd) for gas";say("The Reserve wallet has no ETH for gas. Switch MetaMask to Stan wallet 0x9b8E…c7Fd first.","warn")},
-  needReserve:()=>{b.textContent="2. Switch to Reserve wallet (0x4F9e…108C)"},
-  lock:()=>{b.textContent=s.lock?"Send 4,500,000 DUSTY into the lock (1 confirmation)":"Lock 4,500,000 DUSTY (2 confirmations)"}})[s.next]()}
+ const b1=$("b1"),b2=$("b2");b1.disabled=false;
+ if(!s){b1.textContent="Connect MetaMask";b2.disabled=true;b2.textContent="Do Step 1 first";return}
+ if(s.lp&&!s.lpDone&&s.nftOwner!==A(STAN)){b1.textContent="Re-check";say("Position #"+LP_ID+" is owned by "+s.nftOwner+", not Stan or the lock. Stop and tell Hark.","err")}
+ else if(s.step1)b1.textContent="Step 1 done ✓ (tap to re-check)";
+ else if(me!==A(STAN))b1.textContent="Switch to Stan wallet (0x9b8E…c7Fd)";
+ else{const n=(s.lp?0:1)+(s.lpDone?0:1)+(s.gasOk?0:1);b1.textContent="Step 1: Lock liquidity"+(s.gasOk?"":" + send gas")+" ("+n+" confirmation"+(n>1?"s":"")+")"}
+ if(!s.step1){b2.disabled=true;b2.textContent="Do Step 1 first"}
+ else if(s.resDone){b2.disabled=false;b2.textContent="Step 2 done ✓ (tap to re-check)"}
+ else if(s.rl&&s.rlBal>0n){b2.disabled=false;b2.textContent="Re-check";say("The reserve lock holds "+fD(s.rlBal)+" DUSTY, not 4,500,000. Do not send more. Tell Hark.","err")}
+ else if(me!==A(RESERVE)){b2.disabled=false;b2.textContent="Switch to Reserve wallet (0x4F9e…108C)"}
+ else{const n=(s.rl?0:1)+1;b2.disabled=false;b2.textContent="Step 2: Lock 4,500,000 DUSTY ("+n+" confirmation"+(n>1?"s":"")+")"}
+ $("bFees").hidden=!s.lpDone}
 async function pickAccount(){
  try{await ethereum.request({method:"wallet_requestPermissions",params:[{eth_accounts:{}}]})}catch(e){if(e.code===4001)throw e}
  await connect()}
-async function go(){if(busy)return;busy=true;$("bGo").disabled=true;try{
- if(!signer){if(!(await connect()))return}
- let s=await refresh();
- if(s.next==="topup"){
-  await onChain();if(me!==A(STAN))throw new Error("gas must come from Stan wallet 0x9b8E…c7Fd");
+async function waitCode(a,h){for(let i=0;i<20;i++){if(await isCode(prov,a,h))return true;await sleep(1000)}return false}
+async function step1(s){
+ if(me!==A(STAN)){await pickAccount();return}
+ await onChain(STAN,"Stan wallet 0x9b8E…c7Fd");
+ let lp=s.lp;
+ if(!lp){say("Deploying the liquidity lock… confirm in MetaMask");
+  const c=await new ethers.ContractFactory(PABI,PBC,signer).deploy(NPM,LP_ID,STAN,UNLOCK,await fees());
+  const h=c.deploymentTransaction().hash;say("&nbsp;&nbsp;tx "+link(h,"tx"));await c.waitForDeployment();lp=A(await c.getAddress());
+  if(!(await waitCode(lp,EXP_P)))throw new Error("lock code at "+lp+" does not match yet; tap again in a few seconds");
+  localStorage.setItem(LS+"lplock",lp);localStorage.setItem(LS+"lpDeployTx",h);say("Liquidity lock deployed: "+link(lp)+" ✓");mark("p1","done")}
+ const L=new ethers.Contract(lp,PABI,prov);
+ const [pm,id,ben,ut]=await Promise.all([L.positionManager(),L.tokenId(),L.beneficiary(),L.unlockTime()]);
+ if(A(pm)!==A(NPM)||id!==LP_ID||A(ben)!==A(STAN)||ut!==UNLOCK)throw new Error("liquidity lock settings do not match; stop and tell Hark");
+ const n=new ethers.Contract(NPM,NABI,signer);
+ if(A(await n.ownerOf(LP_ID))===A(STAN)){say("Moving pool position #"+LP_ID+" into the lock… confirm in MetaMask");
+  const tx=await n["safeTransferFrom(address,address,uint256)"](STAN,lp,LP_ID,await fees());say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();localStorage.setItem(LS+"lpXferTx",tx.hash);
+  for(let i=0;i<20&&A(await n.ownerOf(LP_ID))!==lp;i++)await sleep(1000);say("Pool position locked ✓");mark("p2","done")}
+ if((await prov.getBalance(RESERVE))<MINGAS&&!(await refresh()).resDone){
   const prev=localStorage.getItem(LS+"gasTx");
-  if(prev){const rc=await prov.getTransactionReceipt(prev);if(!rc||rc.status===1){say("Gas was already sent ("+link(prev,"tx")+"). Waiting for it to show…");}else localStorage.removeItem(LS+"gasTx")}
-  if(!localStorage.getItem(LS+"gasTx")){
-   say("Sending 0.0001 ETH to the Reserve wallet… confirm in MetaMask");
+  if(prev){const rc=await prov.getTransactionReceipt(prev);if(rc&&rc.status!==1)localStorage.removeItem(LS+"gasTx");else say("Gas was already sent ("+link(prev,"tx")+"). Waiting for it to show…")}
+  if(!localStorage.getItem(LS+"gasTx")){say("Sending 0.0001 ETH gas to the Reserve wallet… confirm in MetaMask");
    const tx=await signer.sendTransaction({to:RESERVE,value:TOPUP,...(await fees())});localStorage.setItem(LS+"gasTx",tx.hash);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait()}
-  for(let i=0;i<20&&(await prov.getBalance(RESERVE))<MINGAS;i++)await new Promise(z=>setTimeout(z,1000)); // RPC nodes can lag a block
-  say("Gas is in the Reserve ✓ Next: switch to the Reserve wallet.");
-  s=await refresh()}
- else if(s.next==="needStan"||s.next==="needReserve"){await pickAccount();s=await refresh()}
- else if(s.next==="lock"){
-  await onChain();if(me!==A(RESERVE))throw new Error("connected wallet is not the Reserve 0x4F9e…108C");
-  let lock=s.lock;
-  if(!lock){
-   if(s.resBal<AMT)throw new Error("the Reserve holds "+fD(s.resBal)+" DUSTY, less than 4,500,000");
-   say("Deploying the lock contract… confirm in MetaMask");
-   const c=await new ethers.ContractFactory(LABI,LBC,signer).deploy(DUSTY,RESERVE,UNLOCK,await fees());
-   say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();lock=A(await c.getAddress());
-   let ok=false;for(let i=0;i<20&&!ok;i++){ok=ethers.keccak256(await prov.getCode(lock))===EXP_HASH;if(!ok)await new Promise(z=>setTimeout(z,1000))}
-   if(!ok)throw new Error("lock code at "+lock+" does not match yet; tap again in a few seconds");
-   localStorage.setItem(LS+"lock",lock);localStorage.setItem(LS+"deployTx",c.deploymentTransaction().hash);say("Lock deployed: "+link(lock)+" ✓");mark("pC","done")}
-  const L=new ethers.Contract(lock,LABI,prov);
-  const [ben,rt,tk]=await Promise.all([L.beneficiary(),L.releaseTime(),L.token()]);
-  if(A(ben)!==A(RESERVE)||rt!==UNLOCK||A(tk)!==A(DUSTY))throw new Error("lock settings do not match; stop and tell Hark");
-  const t=new ethers.Contract(DUSTY,EABI,signer);
-  if((await t.balanceOf(lock))===0n){
-   say("Sending exactly 4,500,000 DUSTY into the lock… confirm in MetaMask");
-   const tx=await t.transfer(lock,AMT,await fees());say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();localStorage.setItem(LS+"xferTx",tx.hash);say("4,500,000 DUSTY locked ✓")}
-  s=await refresh()}
- if(s.next==="done")await readBack(s.lock);
- label(s);
-}catch(e){say("Stopped: "+emsg(e)+"<br>Tap the button again to resume.","err");$("bGo").disabled=false}finally{busy=false}}
-async function readBack(lock){
- const L=new ethers.Contract(lock,LABI,prov),t=new ethers.Contract(DUSTY,EABI,prov);
- const [code,ben,rt,tk,lb,rb,now]=await Promise.all([prov.getCode(lock),L.beneficiary(),L.releaseTime(),L.token(),t.balanceOf(lock),t.balanceOf(RESERVE),prov.getBlock("latest")]);
- const checks=[["lock code is the published DustyReserveLock (no owner, no early withdraw)",ethers.keccak256(code)===EXP_HASH],["token = DUSTY "+DUSTY,A(tk)===A(DUSTY)],
-  ["beneficiary = Dusty Rewards Reserve "+RESERVE,A(ben)===A(RESERVE)],["unlocks "+dateStr,rt===UNLOCK],["still locked now",BigInt(now.timestamp)<rt],
-  ["lock holds 4,500,000 DUSTY",lb===AMT],["Reserve keeps "+fD(rb)+" DUSTY unlocked",rb>0n]];
- const good=checks.every(x=>x[1]);mark("pE",good?"done":"now");
- const dt=localStorage.getItem(LS+"deployTx"),xt=localStorage.getItem(LS+"xferTx");
- result=`// ---- DUSTY RESERVE LOCK (Base 8453) ----\nLOCK = "${lock}"\nTOKEN = "${DUSTY}"\nBENEFICIARY = "${RESERVE}"\nRELEASE_TIME = ${UNLOCK}  // ${dateStr}\nLOCKED = "${ethers.formatUnits(lb,18)}"\nRESERVE_FREE = "${ethers.formatUnits(rb,18)}"\n`+(dt?`DEPLOY_TX = "${dt}"\n`:"")+(xt?`TRANSFER_TX = "${xt}"\n`:"")+`CHECKS = ${good?"all passed":"FAILED"}`;
- $("res").innerHTML=(good?"<b>✓ Locked. All checks passed.</b>":'<span class="err">⚠ Some checks failed. Tell Hark.</span>')+"\n\n"+checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+
-  "\n\nLock: "+link(lock)+"\nDUSTY held by the lock: <a target=_blank rel=noopener href=\""+SCAN+"/token/"+DUSTY+"?a="+lock+"\">Basescan</a>"+(dt?"\nDeploy tx: "+link(dt,"tx"):"")+(xt?"\nTransfer tx: "+link(xt,"tx"):"")+"\nPublic page: <a href=\"transparency.html\">Transparency</a>";
- $("s2").className="step "+(good?"done":"bad");$("bCopy").disabled=false}
-$("bGo").onclick=go;
+  for(let i=0;i<20&&(await prov.getBalance(RESERVE))<MINGAS;i++)await sleep(1000)}
+ say("Step 1 done ✓ Now switch MetaMask to the Reserve wallet (see Step 2).")}
+async function step2(s){
+ if(me!==A(RESERVE)){await pickAccount();return}
+ await onChain(RESERVE,"the Reserve 0x4F9e…108C");
+ let rl=s.rl;
+ if(!rl){if(s.resBal<AMT)throw new Error("the Reserve holds "+fD(s.resBal)+" DUSTY, less than 4,500,000");
+  say("Deploying the reserve lock… confirm in MetaMask");
+  const c=await new ethers.ContractFactory(LABI,LBC,signer).deploy(DUSTY,RESERVE,UNLOCK,await fees());
+  const h=c.deploymentTransaction().hash;say("&nbsp;&nbsp;tx "+link(h,"tx"));await c.waitForDeployment();rl=A(await c.getAddress());
+  if(!(await waitCode(rl,EXP_R)))throw new Error("lock code at "+rl+" does not match yet; tap again in a few seconds");
+  localStorage.setItem(LS+"lock",rl);localStorage.setItem(LS+"deployTx",h);say("Reserve lock deployed: "+link(rl)+" ✓");mark("p4","done")}
+ const L=new ethers.Contract(rl,LABI,prov);
+ const [ben,rt,tk]=await Promise.all([L.beneficiary(),L.releaseTime(),L.token()]);
+ if(A(ben)!==A(RESERVE)||rt!==UNLOCK||A(tk)!==A(DUSTY))throw new Error("reserve lock settings do not match; stop and tell Hark");
+ const t=new ethers.Contract(DUSTY,EABI,signer);
+ if((await t.balanceOf(rl))===0n){say("Sending exactly 4,500,000 DUSTY into the lock… confirm in MetaMask");
+  const tx=await t.transfer(rl,AMT,await fees());say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();localStorage.setItem(LS+"xferTx",tx.hash);say("4,500,000 DUSTY locked ✓")}}
+async function run(fn){if(busy)return;busy=true;$("b1").disabled=$("b2").disabled=true;try{
+ if(!(await connect()))return; // always re-read the selected account
+ let s=await refresh();
+ if(fn)await fn(s);
+ s=await refresh();await readBack(s);label(s);
+}catch(e){say("Stopped: "+emsg(e)+"<br>Tap the button again to resume. Finished parts are kept.","err");try{label(await refresh())}catch(_){$("b1").disabled=false}}finally{busy=false}}
+async function readBack(s){
+ if(!s.lpDone&&!s.rl){return}
+ const t=new ethers.Contract(DUSTY,EABI,prov),now=BigInt((await prov.getBlock("latest")).timestamp),checks=[];
+ if(s.lp){const L=new ethers.Contract(s.lp,PABI,prov),n=new ethers.Contract(NPM,NABI,prov);
+  const [code,pm,id,ben,ut,pos]=await Promise.all([prov.getCode(s.lp),L.positionManager(),L.tokenId(),L.beneficiary(),L.unlockTime(),n.positions(LP_ID)]);
+  checks.push(["liquidity lock code is the published DustyLiquidityLock (no owner, no early withdraw)",ethers.keccak256(code)===EXP_P],["holds pool position #"+LP_ID+" (Uniswap v3 "+NPM.slice(0,8)+"…)",s.lpDone&&A(pm)===A(NPM)&&id===LP_ID],
+   ["pool position still has its liquidity",pos[7]>0n],["fees and the position go only to Stan "+STAN,A(ben)===A(STAN)],["liquidity unlocks "+dateStr,ut===UNLOCK&&now<ut])}
+ if(s.rl){const L=new ethers.Contract(s.rl,LABI,prov);
+  const [code,ben,rt,tk,rb]=await Promise.all([prov.getCode(s.rl),L.beneficiary(),L.releaseTime(),L.token(),t.balanceOf(RESERVE)]);
+  checks.push(["reserve lock code is the published DustyReserveLock",ethers.keccak256(code)===EXP_R],["token = DUSTY "+DUSTY,A(tk)===A(DUSTY)],["releases only to the Reserve "+RESERVE,A(ben)===A(RESERVE)],
+   ["reserve unlocks "+dateStr,rt===UNLOCK&&now<rt],["reserve lock holds 4,500,000 DUSTY",s.rlBal===AMT],["Reserve keeps "+fD(rb)+" DUSTY unlocked",rb>0n])}
+ const all=s.lpDone&&s.resDone,good=checks.every(x=>x[1]);
+ const g=k=>localStorage.getItem(LS+k);
+ result=`// ---- DUSTY LOCKS (Base 8453) ----\nLP_LOCK = "${s.lp||""}"\nLP_TOKEN_ID = ${LP_ID}\nLP_NFT_OWNER = "${s.nftOwner}"\nRESERVE_LOCK = "${s.rl||""}"\nRESERVE_LOCKED = "${ethers.formatUnits(s.rlBal,18)}"\nUNLOCK = ${UNLOCK}  // ${dateStr}\n`+
+  ["lpDeployTx","lpXferTx","gasTx","deployTx","xferTx"].filter(g).map(k=>k.toUpperCase()+' = "'+g(k)+'"').join("\n")+`\nCHECKS = ${good?"all passed":"FAILED"}${all?"":" (not finished)"}`;
+ $("res").innerHTML=(all&&good?"<b>✓ Everything locked. All checks passed.</b>":good?"<b>Partly done.</b> Finished parts check out.":'<span class="err">⚠ Some checks failed. Tell Hark.</span>')+"\n\n"+checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+
+  (s.lp?"\n\nLiquidity lock: "+link(s.lp):"")+(s.rl?"\nReserve lock: "+link(s.rl)+" · <a target=_blank rel=noopener href=\""+SCAN+"/token/"+DUSTY+"?a="+s.rl+"\">DUSTY held</a>":"")+
+  ["lpDeployTx","lpXferTx","gasTx","deployTx","xferTx"].filter(g).map(k=>"\n"+({lpDeployTx:"LP lock deploy",lpXferTx:"Position transfer",gasTx:"Gas top-up",deployTx:"Reserve lock deploy",xferTx:"DUSTY transfer"})[k]+" tx: "+link(g(k),"tx")).join("")+
+  "\nPublic page: <a href=\"transparency.html\">Transparency</a>";
+ $("sR").className="step "+(all&&good?"done":good?"":"bad");$("bCopy").disabled=false}
+$("b1").onclick=()=>run(s=>s.step1?null:step1(s));
+$("b2").onclick=()=>run(s=>!s.step1||s.resDone||(s.rl&&s.rlBal>0n)?null:step2(s));
+$("bFees").onclick=()=>run(async s=>{if(!s.lpDone)return;say("Collecting pool fees to Stan… confirm in MetaMask");
+ const tx=await new ethers.Contract(s.lp,PABI,signer).collectFees(await fees());say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("Fees sent to Stan ✓")});
 $("bSwitch").onclick=async()=>{try{await pickAccount();label(await refresh())}catch(e){say("Switch: "+emsg(e),"err")}};
 $("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(result);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",result)}};
-window.ethereum?.on?.("accountsChanged",async()=>{if(busy)return;try{if(await connect())label(await refresh())}catch(e){}});
+window.ethereum?.on?.("accountsChanged",async()=>{if(busy)return;try{if(await connect()){const s=await refresh();await readBack(s);label(s)}}catch(e){}});
 window.ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap the button to reconnect on Base.";label(null)});
 // already authorised? pick up where we left off without a tap
-(async()=>{try{if(window.ethereum&&(await ethereum.request({method:"eth_accounts"})).length){if(await connect()){const s=await refresh();if(s.next==="done")await readBack(s.lock);label(s)}}}catch(e){}})();
+(async()=>{try{if(window.ethereum&&(await ethereum.request({method:"eth_accounts"})).length){if(await connect()){const s=await refresh();await readBack(s);label(s)}}}catch(e){}})();
 </script></body></html>
