@@ -1,6 +1,6 @@
 // Dusty service worker: caches the app shell so it opens offline. Never touches RPC or price calls.
-const CACHE = "dusty-shell-v11";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png", "./favicon-32.png", "./logo-mark.png"];
+const CACHE = "dusty-shell-v12";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png", "./favicon-32.png", "./logo-mark.png", "./countdown.js"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
