@@ -124,3 +124,40 @@ test("fork: spot moves >20% vs TWAP → refuse", { skip: !(fork && F.FORK_AFTER_
   const r = await W.fetch(req("/quote", { user: F.FORK_USER, token: USDC, amount: "1000000" }), env); const j = await r.json();
   console.log("  after big swap:", r.status, j.error); assert.equal(r.status, 503); assert.match(j.error, /moving too fast/);
 });
+
+test("rate limit: 20 per minute per IP, then refused; window slides", async () => {
+  const { localLimited, RL_LIMIT, RL_WINDOW_MS } = await import("../dusty-quote-mainnet.js");
+  const m = new Map(), t0 = 1_000_000;
+  for (let i = 0; i < RL_LIMIT; i++) assert.equal(localLimited("1.2.3.4", t0 + i, m), false);
+  assert.equal(localLimited("1.2.3.4", t0 + 100, m), true);
+  assert.equal(localLimited("5.6.7.8", t0 + 100, m), false);           // other IPs unaffected
+  assert.equal(localLimited("1.2.3.4", t0 + RL_WINDOW_MS + 50, m), false); // window slid
+});
+
+test("rate limit: POST /quote returns 429 + Retry-After after the burst; binding refusal honoured", async () => {
+  const env = {}; const mk = (ip) => new Request("https://w.example/quote", { method: "POST",
+    headers: { "Content-Type": "application/json", Origin: "https://statxqo-clickit.github.io", "CF-Connecting-IP": ip }, body: "{}" });
+  let last;
+  for (let i = 0; i < 21; i++) last = await W.fetch(mk("9.9.9.9"), env);
+  assert.equal(last.status, 429); assert.equal(last.headers.get("Retry-After"), "60");
+  const first = await W.fetch(mk("9.9.9.10"), env); assert.notEqual(first.status, 429); // 503 (not configured), not limited
+  const deny = { QUOTE_LIMITER: { limit: async () => ({ success: false }) } };
+  assert.equal((await W.fetch(mk("9.9.9.11"), deny)).status, 429);
+  const g = await W.fetch(new Request("https://w.example/health"), env); assert.equal(g.status, 200); // GETs never limited
+});
+
+test("RPC fallback: transport failures move to the next RPC; reverts and QuoteErrors do not", async () => {
+  const { withRpc, isRpcDown, rpcList } = await import("../dusty-quote-mainnet.js");
+  assert.deepEqual(rpcList({}, () => 0).slice(0, 1), ["https://mainnet.base.org"]);
+  assert.equal(rpcList({ RPC_URL: "https://x" }, () => 0.99)[0], "https://x");
+  assert.equal(rpcList({}).length, 5); assert.equal(new Set(rpcList({})).size, 5);
+  let tried = [];
+  const mk = (u) => ({ u });
+  const out = await withRpc({}, async (p) => { tried.push(p.u); if (tried.length < 3) throw Object.assign(new Error("timeout"), { code: "TIMEOUT" }); return "ok"; }, mk);
+  assert.equal(out, "ok"); assert.equal(tried.length, 3);
+  tried = [];
+  await assert.rejects(withRpc({}, async (p) => { tried.push(p.u); throw Object.assign(new Error("revert"), { code: "CALL_EXCEPTION", data: "0x08c379a0" }); }, mk));
+  assert.equal(tried.length, 1);
+  assert.equal(isRpcDown(new QuoteError("x")), false);
+  assert.equal(isRpcDown(Object.assign(new Error("missing revert data"), { code: "CALL_EXCEPTION", data: null })), true);
+});

@@ -6,6 +6,9 @@
 #   - Uploads as Worker script "dusty-quote-mainnet" (separate from testnet "dusty-quote").
 #   - Runs the Worker unit tests first (tools/test-mainnet-worker.sh); stops if any fail.
 #   - Sets secret QUOTE_SIGNER_KEY_MAINNET from the key file (never printed), var RECYCLER_V2 and (if given) var DUSTY_POOL.
+#   - Binds QUOTE_LIMITER (Workers rate-limit binding: 20 POST /quote per IP per 60s).
+#   - KEEP_SECRET=1: don't read the key file; keep the signer secret already on the Worker (keep_bindings).
+#   - No CLOUDFLARE_API_TOKEN set: no auth header is sent (Hark's gateway injects the connected 'cloudflare' token).
 #   - Enables workers.dev, then checks /health shows the expected signer + recycler.
 set -euo pipefail
 REC="${1:?usage: $0 <RECYCLER_V2_ADDRESS>}"
@@ -13,7 +16,8 @@ REC="${1:?usage: $0 <RECYCLER_V2_ADDRESS>}"
 POOL="${2:-}"
 if [ -n "$POOL" ]; then [[ "$POOL" =~ ^0x[0-9a-fA-F]{40}$ ]] || { echo "bad pool address"; exit 1; }; fi
 [ -z "$POOL" ] && echo "NOTE: no pool address given: Worker will use the fixed \$0.001 DUSTY price."
-: "${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN (from the vault)}"
+AUTH=(); [ -n "${CLOUDFLARE_API_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+KEEP_SECRET="${KEEP_SECRET:-0}"
 ACCOUNT="${CF_ACCOUNT_ID:-1531fc8f5ef3475c2d4059445ab6ce65}"
 NAME="${WORKER_NAME:-dusty-quote-mainnet}"
 KEYFILE="${KEYFILE:-/workspace/projects/1f70029c-db9d-4eb4-8076-a31096ed8560/secrets/mainnet-signer.key}"
@@ -23,29 +27,34 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 echo "unit tests: pass"
 ESBUILD="${ESBUILD:-/workspace/work/dusty-quote/node_modules/.bin/esbuild}"
 NODE_PATH_DIR="${NODE_PATH_DIR:-/workspace/work/dusty-quote/node_modules}"
-[ -f "$KEYFILE" ] || { echo "missing key file $KEYFILE"; exit 1; }
-[ "$(stat -c %a "$KEYFILE")" = "600" ] || { echo "key file must be chmod 600"; exit 1; }
+if [ "$KEEP_SECRET" != "1" ]; then
+  [ -f "$KEYFILE" ] || { echo "missing key file $KEYFILE"; exit 1; }
+  [ "$(stat -c %a "$KEYFILE")" = "600" ] || { echo "key file must be chmod 600"; exit 1; }
+fi
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 cp "$ROOT/workers/dusty-quote-mainnet.js" "$TMP/worker.src.js"
 ln -s "$NODE_PATH_DIR" "$TMP/node_modules"
 "$ESBUILD" "$TMP/worker.src.js" --bundle --format=esm --platform=browser --minify --outfile="$TMP/worker.js" --log-level=warning
 # metadata with secret built in python so the key never hits argv or stdout
-python3 - "$TMP" "$REC" "$KEYFILE" "$POOL" <<'PY'
+python3 - "$TMP" "$REC" "$KEYFILE" "$POOL" "$KEEP_SECRET" <<'PY'
 import json,sys
-tmp,rec,kf,pool=sys.argv[1:5]
-key=open(kf).read().strip()
-b=[{"type":"plain_text","name":"RECYCLER_V2","text":rec},{"type":"secret_text","name":"QUOTE_SIGNER_KEY_MAINNET","text":key}]
+tmp,rec,kf,pool,keep=sys.argv[1:6]
+b=[{"type":"plain_text","name":"RECYCLER_V2","text":rec},
+   {"type":"ratelimit","name":"QUOTE_LIMITER","namespace_id":"8453","simple":{"limit":20,"period":60}}]
+meta={"main_module":"worker.js","compatibility_date":"2026-11-01","bindings":b}
+if keep=="1": meta["keep_bindings"]=["secret_text"]
+else: b.append({"type":"secret_text","name":"QUOTE_SIGNER_KEY_MAINNET","text":open(kf).read().strip()})
 if pool: b.append({"type":"plain_text","name":"DUSTY_POOL","text":pool})
-json.dump({"main_module":"worker.js","compatibility_date":"2026-11-01","bindings":b},open(tmp+"/meta.json","w"))
+json.dump(meta,open(tmp+"/meta.json","w"))
 PY
 chmod 600 "$TMP/meta.json"
 API="https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/scripts/$NAME"
-curl -fsS -X PUT "$API" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+curl -fsS -X PUT "$API" "${AUTH[@]}" \
   -F "metadata=@$TMP/meta.json;type=application/json" -F "worker.js=@$TMP/worker.js;type=application/javascript+module" \
   | python3 -c "import json,sys;d=json.load(sys.stdin);print('upload success:',d.get('success'),d.get('errors'))"
-curl -fsS -X POST "$API/subdomain" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+curl -fsS -X POST "$API/subdomain" "${AUTH[@]}" -H "Content-Type: application/json" \
   -d '{"enabled":true}' | python3 -c "import json,sys;print('workers.dev enabled:',json.load(sys.stdin).get('success'))"
-SUB="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/subdomain" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | python3 -c "import json,sys;print(json.load(sys.stdin)['result']['subdomain'])")"
+SUB="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/subdomain" "${AUTH[@]}" | python3 -c "import json,sys;print(json.load(sys.stdin)['result']['subdomain'])")"
 URL="https://$NAME.$SUB.workers.dev"
 echo "Worker URL: $URL"
 for i in 1 2 3 4 5 6; do sleep 5; H="$(curl -fsS "$URL/health" || true)"; [ -n "$H" ] && break; done

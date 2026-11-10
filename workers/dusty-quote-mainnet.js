@@ -6,14 +6,16 @@
 //   * Optional: TWAP_SECONDS (default 1800, allowed 600-3600), RPC_URL (default https://mainnet.base.org)
 //   * Fails closed: no key, wrong key, or no recycler → 503, nothing is signed.
 //   * Only the v2 recycler, only allowlisted tokens, only dust (< $10), only if the user holds the amount.
-//   * CORS: https://statxqo-clickit.github.io only. Rate limiting: Cloudflare dashboard rule (not in code).
+//   * CORS: https://statxqo-clickit.github.io only.
+//   * Rate limit: POST /quote 20/min per IP. Workers rate-limit binding QUOTE_LIMITER (if bound) plus an
+//     in-isolate sliding window as backstop. Over the limit → 429 + Retry-After. RPC calls time out after 10s.
 //
 // Pricing (market based):
 //   dust USD   = amount × price. USDC is fixed at $1. Other allowlisted Base tokens: DefiLlama coins API.
 //   DUSTY USD  = 30-minute TWAP of the DUSTY/USDC v3 pool (pool.observe). No DUSTY_POOL set → fixed $0.001 (1,000/USD) fallback only.
 //                Pool set but TWAP unavailable, or TWAP vs spot differs by more than 20% → no quote (503).
 //   dustyOut   = dust USD / DUSTY USD (before fee; the contract takes feeBps), capped at recycler.maxDustyPerQuote().
-import { Wallet, JsonRpcProvider, Contract, getAddress } from "ethers";
+import { Wallet, JsonRpcProvider, FetchRequest, Contract, getAddress } from "ethers";
 
 export const CHAIN_ID = 8453;
 const DEFAULT_RPC = "https://mainnet.base.org";
@@ -76,12 +78,12 @@ export async function priceDusty(provider, poolAddr, dusty, secs) {
   const pool = new Contract(poolAddr, POOL_ABI, provider);
   let t0, t1, s0, obs;
   try { [t0, t1, s0] = await Promise.all([pool.token0(), pool.token1(), pool.slot0()]); }
-  catch { throw new QuoteError("price unavailable (pool unreachable)"); }
+  catch (e) { if (isRpcDown(e)) throw e; throw new QuoteError("price unavailable (pool unreachable)"); }
   const a = getAddress(t0), b = getAddress(t1), d = getAddress(dusty), u = getAddress(USDC);
   if (!((a === d && b === u) || (a === u && b === d))) throw new QuoteError("price unavailable (pool is not DUSTY/USDC)");
   const dustyIs0 = a === d;
   try { obs = await pool.observe([secs, 0]); }
-  catch { throw new QuoteError("price unavailable (pool TWAP not ready yet)"); }
+  catch (e) { if (isRpcDown(e)) throw e; throw new QuoteError("price unavailable (pool TWAP not ready yet)"); }
   const tw = twapTick(obs.tickCumulatives[0], obs.tickCumulatives[1], secs), spot = Number(s0.tick);
   const dev = deviationBps(tw, spot);
   if (dev > MAX_DEVIATION_BPS) throw new QuoteError("price moving too fast, try again later");
@@ -102,6 +104,66 @@ export async function priceDust(token, amount, decimals, fetchFn = fetch) {
   if (!p.timestamp || Date.now() / 1000 - p.timestamp > LLAMA_MAX_AGE) throw new QuoteError("dust price stale", 502);
   return { usd1e18: (amount * toE18(p.price)) / unit, usd: p.price, source: "defillama" };
 }
+
+// ---------- rate limit ----------
+export const RL_LIMIT = 20, RL_WINDOW_MS = 60_000;
+const rlHits = new Map(); // ip -> [timestamps] (per isolate; backstop for the CF binding)
+export function localLimited(ip, now = Date.now(), map = rlHits) {
+  const arr = (map.get(ip) || []).filter((t) => now - t < RL_WINDOW_MS);
+  const over = arr.length >= RL_LIMIT;
+  if (!over) arr.push(now);
+  map.set(ip, arr);
+  if (map.size > 5000) for (const [k, v] of map) { if (!v.length || now - v[v.length - 1] >= RL_WINDOW_MS) map.delete(k); }
+  return over;
+}
+export async function rateLimited(req, env) {
+  const ip = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
+  if (env && env.QUOTE_LIMITER && typeof env.QUOTE_LIMITER.limit === "function") {
+    try { const r = await env.QUOTE_LIMITER.limit({ key: ip }); if (r && r.success === false) { localLimited(ip); return true; } } catch {}
+  }
+  return localLimited(ip);
+}
+// ---------- RPC (read-only) with timeout + fallbacks ----------
+export const RPC_TIMEOUT_MS = 6_000;
+// Public Base RPCs throttle Cloudflare egress IPs (HTTP 429), so spread requests: start at a random one, try up to MAX_RPC_TRIES.
+export const FALLBACK_RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.gateway.tenderly.co",
+  "https://base-mainnet.public.blastapi.io", "https://base.meowrpc.com", "https://base-pokt.nodies.app", "https://base.drpc.org"];
+export const MAX_RPC_TRIES = 5;
+/** True for transport failures (timeout, 429, 5xx, bad response), false for contract reverts. */
+export function isRpcDown(e) {
+  if (!e || e instanceof QuoteError) return false;
+  // A real revert carries revert data. ethers also reports RPC-side eth_call failures (rate limits, node errors)
+  // as CALL_EXCEPTION "missing revert data": those are transport problems, so try the next RPC.
+  if (e.code === "CALL_EXCEPTION") return !(typeof e.data === "string" && e.data.length > 2);
+  return true;
+}
+/** env.RPC_URL (e.g. a keyed provider) always first; then the public list rotated from a random start. */
+export function rpcList(env, rnd = Math.random) {
+  const k = Math.floor(rnd() * FALLBACK_RPCS.length);
+  const rot = [...FALLBACK_RPCS.slice(k), ...FALLBACK_RPCS.slice(0, k)];
+  return [...new Set([env.RPC_URL, ...rot].filter(Boolean))].slice(0, MAX_RPC_TRIES);
+}
+function provider(url) {
+  const fr = new FetchRequest(url); fr.timeout = RPC_TIMEOUT_MS;
+  fr.setThrottleParams({ maxAttempts: 1 }); // no silent 429 retry loops (they burn the Worker's 50-subrequest cap); we fall back instead
+  // batch parallel calls into one HTTP request (Workers cap simultaneous connections at 6); drpc rejects batches
+  return new JsonRpcProvider(fr, CHAIN_ID, { staticNetwork: true, batchMaxCount: /drpc|meowrpc/.test(url) ? 1 : 20 });
+}
+/** Run fn(provider) against each RPC in turn until one answers. Reverts and QuoteErrors are not retried.
+ *  `trace` (optional array) collects "host:errorCode" per failed RPC and "host" for the one that answered. */
+export async function withRpc(env, fn, mk = provider, trace = null) {
+  let last;
+  for (const u of rpcList(env)) {
+    const p = mk(u); let host = u; try { host = new URL(u).host; } catch {}
+    try { const r = await fn(p); if (trace) trace.push(host); return r; }
+    catch (e) { last = e; if (trace) trace.push(host + ":" + (e.code || "ERR") + ":" + String(e.shortMessage || e.message || "").slice(0, 60)); if (!isRpcDown(e)) throw e; }
+    finally { try { p.destroy && p.destroy(); } catch {} }
+  }
+  throw last || new Error("no rpc");
+}
+
+// /price is polled by every open app once a minute: answer from a 30 s per-isolate memo to spare the public RPCs.
+const PRICE_MEMO_MS = 30_000; let priceMemo = null;
 
 // ---------- worker ----------
 function cors(req) {
@@ -131,14 +193,21 @@ export default {
         testnet: false, pricing: poolBad ? "bad-pool" : pool ? "twap" : "fixed", pool, twapSeconds: secs });
     if (url.pathname === "/price" && req.method === "GET") {
       if (!recycler || poolBad) return json(req, { error: "quote service not ready" }, 503);
+      const memoKey = recycler + (pool || "") + secs;
+      if (priceMemo && priceMemo.key === memoKey && Date.now() - priceMemo.at < PRICE_MEMO_MS) return json(req, priceMemo.body);
       try {
-        const provider = new JsonRpcProvider(env.RPC_URL || DEFAULT_RPC, CHAIN_ID, { staticNetwork: true });
-        const dusty = await new Contract(recycler, REC_ABI, provider).dusty();
-        const p = await priceDusty(provider, pool, dusty, secs);
-        return json(req, { usdPerDusty: Number(p.price1e18) / 1e18, dustyPerUsd: Number((E18 * E18) / p.price1e18) / 1e18, source: p.source, deviationBps: p.deviationBps ?? null });
+        const p = await withRpc(env, async (provider) => {
+          const dusty = await new Contract(recycler, REC_ABI, provider).dusty();
+          return priceDusty(provider, pool, dusty, secs);
+        });
+        const body = { usdPerDusty: Number(p.price1e18) / 1e18, dustyPerUsd: Number((E18 * E18) / p.price1e18) / 1e18, source: p.source, deviationBps: p.deviationBps ?? null };
+        priceMemo = { key: memoKey, at: Date.now(), body };
+        return json(req, body);
       } catch (e) { return json(req, { error: e instanceof QuoteError ? e.message : "network busy, try again" }, e instanceof QuoteError ? e.status : 502); }
     }
     if (url.pathname !== "/quote" || req.method !== "POST") return json(req, { error: "not found" }, 404);
+    if (await rateLimited(req, env))
+      return new Response(JSON.stringify({ error: "too many requests, wait a minute and try again" }), { status: 429, headers: { ...cors(req), "Retry-After": "60" } });
     if (!signer || !recycler || poolBad) return json(req, { error: "quote service not ready" }, 503);
 
     let b; try { b = await req.json(); } catch { return json(req, { error: "bad json" }, 400); }
@@ -148,22 +217,25 @@ export default {
     if (rec !== recycler) return json(req, { error: "unknown recycler" }, 400);
     if (amount <= 0n) return json(req, { error: "zero amount" }, 400);
 
-    let nonce, feeBps, maxPer, dustP, dustyP;
+    let nonce, feeBps, maxPer, dustP, dustyP; const trace = [];
     try {
-      const provider = new JsonRpcProvider(env.RPC_URL || DEFAULT_RPC, CHAIN_ID, { staticNetwork: true });
-      const r = new Contract(recycler, REC_ABI, provider);
-      const erc = new Contract(token, ERC_ABI, provider);
-      let allowed, paused, bal, dec, dusty;
-      [nonce, feeBps, allowed, paused, bal, maxPer, dusty] = await Promise.all([r.nonces(user, { blockTag: "latest" }), r.feeBps(), r.allowedToken(token),
-        r.paused(), erc.balanceOf(user), r.maxDustyPerQuote(), r.dusty()]);
-      if (paused) return json(req, { error: "recycling is paused" }, 503);
-      if (!allowed) return json(req, { error: "token not supported yet" }, 400);
-      if (bal < amount) return json(req, { error: "insufficient balance" }, 400);
-      dec = getAddress(token) === getAddress(USDC) ? 6 : Number(await erc.decimals());
-      [dustP, dustyP] = await Promise.all([priceDust(token, amount, dec), priceDusty(provider, pool, dusty, secs)]);
+      const res = await withRpc(env, async (provider) => {
+        const r = new Contract(recycler, REC_ABI, provider);
+        const erc = new Contract(token, ERC_ABI, provider);
+        const [nonce, feeBps, allowed, paused, bal, maxPer, dusty] = await Promise.all([r.nonces(user, { blockTag: "latest" }), r.feeBps(), r.allowedToken(token),
+          r.paused(), erc.balanceOf(user), r.maxDustyPerQuote(), r.dusty()]);
+        if (paused) return { stop: [{ error: "recycling is paused" }, 503] };
+        if (!allowed) return { stop: [{ error: "token not supported yet" }, 400] };
+        if (bal < amount) return { stop: [{ error: "insufficient balance" }, 400] };
+        const dec = getAddress(token) === getAddress(USDC) ? 6 : Number(await erc.decimals());
+        const [dustP, dustyP] = await Promise.all([priceDust(token, amount, dec), priceDusty(provider, pool, dusty, secs)]);
+        return { nonce, feeBps, maxPer, dustP, dustyP };
+      }, undefined, trace);
+      if (res.stop) return json(req, res.stop[0], res.stop[1]);
+      ({ nonce, feeBps, maxPer, dustP, dustyP } = res);
     } catch (e) {
-      if (e instanceof QuoteError) return json(req, { error: e.message }, e.status);
-      return json(req, { error: "network busy, try again" }, 502);
+      if (e instanceof QuoteError) return json(req, { error: e.message, rpc: trace }, e.status);
+      return json(req, { error: "network busy, try again", rpc: trace }, 502);
     }
     if (dustP.usd1e18 >= MAX_USD_1E18) return json(req, { error: "not dust (over $10)" }, 400);
     const { dustyOut, capped } = payout(dustP.usd1e18, dustyP.price1e18, maxPer);
@@ -175,6 +247,6 @@ export default {
     return json(req, { user, token, amount: amount.toString(), dustyOut: dustyOut.toString(), toUser: (dustyOut - fee).toString(),
       fee: fee.toString(), feeBps: Number(feeBps), nonce: nonce.toString(), deadline: deadline.toString(), signature,
       recycler, version: 2, chainId: CHAIN_ID, testnet: false,
-      pricing: { dustUsd: (Number(dustP.usd1e18) / 1e18).toFixed(6), usdPerDusty: Number(dustyP.price1e18) / 1e18, source: dustyP.source, dustSource: dustP.source, capped } });
+      pricing: { dustUsd: (Number(dustP.usd1e18) / 1e18).toFixed(6), usdPerDusty: Number(dustyP.price1e18) / 1e18, source: dustyP.source, dustSource: dustP.source, capped, rpc: trace } });
   },
 };
