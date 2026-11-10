@@ -19,6 +19,9 @@ test("twapTick rounds toward -infinity like OracleLibrary", () => {
 });
 
 test("tick → USD per DUSTY for both token orders (18 vs 6 decimals)", () => {
+  // $0.0003 (launch price): DUSTY token0 → tick ≈ -357446
+  assert.ok(Math.abs(tickToUsdPerDusty(-357446, true) / 0.0003 - 1) < 2e-4);
+  assert.ok(Math.abs(tickToUsdPerDusty(357446, false) / 0.0003 - 1) < 2e-4);
   // $0.001: DUSTY token0 → tick ≈ -345405/-345406; USDC token0 → tick ≈ +345405
   assert.ok(Math.abs(tickToUsdPerDusty(-345406, true) / 0.001 - 1) < 2e-4);
   assert.ok(Math.abs(tickToUsdPerDusty(345405, false) / 0.001 - 1) < 2e-4);
@@ -38,6 +41,11 @@ test("payout: $1 at $0.001 = 1000 DUSTY (950 after the contract's 5% fee)", () =
   const { dustyOut, capped } = payout(1n * E18, FIXED_PRICE_1E18, 10_000n * E18);
   assert.equal(dustyOut, 1000n * E18); assert.equal(capped, false);
   assert.equal(dustyOut - (dustyOut * 500n) / 10000n, 950n * E18);
+});
+test("payout: pool at $0.0003 → $1 pays ~3,333 DUSTY, ~3,167 after 5% fee", () => {
+  const { dustyOut } = payout(E18, 3n * 10n ** 14n, 10_000n * E18);
+  assert.equal(dustyOut / E18, 3333n);
+  assert.equal((dustyOut - (dustyOut * 500n) / 10000n) / E18, 3166n); // 3166.67
 });
 test("payout: market price halves → twice the DUSTY", () => {
   assert.equal(payout(E18, FIXED_PRICE_1E18 / 2n, null).dustyOut, 2000n * E18);
@@ -97,12 +105,13 @@ test("fork: TWAP/quote/deviation against the seeded DUSTY/USDC pool", { skip: (!
   console.log("  after 30 min:", q.status, "dustyOut", q.j.dustyOut && ethers.formatUnits(q.j.dustyOut, 18), "toUser", q.j.toUser && ethers.formatUnits(q.j.toUser, 18), JSON.stringify(q.j.pricing));
   assert.equal(q.status, 200);
   const out = Number(ethers.formatUnits(q.j.dustyOut, 18));
-  assert.ok(Math.abs(out - 1000) < 1, "≈1000 DUSTY for $1 at $0.001");
+  assert.ok(Math.abs(out - 3333.33) < 2, "≈3,333 DUSTY for $1 at the $0.0003 pool price");
+  assert.ok(Math.abs(Number(ethers.formatUnits(q.j.toUser, 18)) - 3166.67) < 2, "≈3,167 DUSTY to the user after the 5% fee");
   assert.equal(q.j.pricing.source, "twap");
   fs.writeFileSync(F.QUOTE_OUT || "/tmp/quote.json", JSON.stringify(q.j));
   const p = await (await W.fetch(req("/price"), env)).json();
   console.log("  /price:", JSON.stringify(p));
-  // no pool → fixed fallback
+  // no pool → fixed fallback (1,000 DUSTY per $1 = $0.001, used ONLY when DUSTY_POOL is not set)
   const { DUSTY_POOL, ...noPool } = env;
   q = await quote(noPool); assert.equal(q.status, 200); assert.equal(q.j.dustyOut, (1000n * E18).toString()); assert.equal(q.j.pricing.source, "fixed");
   // pool that is not DUSTY/USDC → refuse

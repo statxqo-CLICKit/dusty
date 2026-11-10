@@ -24,9 +24,9 @@ label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-
 
 <div class="step" id="s2"><b>2. Check the amounts</b>
 <label><small>DUSTY token address (filled from the deploy page on this device, or paste it)</small><input id="tok" placeholder="0x…" autocomplete="off"></label>
-<label><small>USDC to add</small><input id="usdc" value="50" inputmode="decimal"></label>
+<label><small>USDC to add</small><input id="usdc" value="15" inputmode="decimal"></label>
 <label><small>DUSTY to add (worked out for you at the starting price)</small><input id="dusty" value="50000" readonly></label>
-<div class="price" id="priceTxt">Starting price: <b>1 DUSTY = $0.001</b>, so <b>$1 buys 1,000 DUSTY</b>. Same as the recycle rate.</div>
+<div class="price" id="priceTxt">Starting price: <b>1 DUSTY = $0.0003</b>, so <b>$1 buys about 3,333 DUSTY</b>. After launch the recycle payout follows the pool price.</div>
 <small>Fee tier 1%. Full range (the pool can trade at any price).</small>
 <label class="chk"><input type="checkbox" id="ok1"><small>I understand this uses real USDC on Base mainnet, the contracts are unaudited, the pool price can move once people trade, and I pay the gas.</small></label>
 <div class="out" id="chkOut"></div></div>
@@ -37,7 +37,7 @@ b. Mint that DUSTY to your wallet
 c. Remove your wallet's mint permission again
 d. Let Uniswap use your DUSTY (approve)
 e. Let Uniswap use your USDC (approve)
-f. Create the DUSTY/USDC 1% pool at $0.001
+f. Create the DUSTY/USDC 1% pool at $0.0003
 g. Add full-range liquidity
 h. Turn on 30-minute price history (for the quote service)
 i. Read everything back</div>
@@ -56,8 +56,9 @@ const USDC="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";                 // Circ
 const FACTORY="0x33128a8fC17869897dcE68Ed026d694621f6FDfD";        // Uniswap v3 Factory, Base (docs.uniswap.org)
 const NPM="0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1";                // Uniswap v3 NonfungiblePositionManager, Base (docs.uniswap.org)
 const FEE=10000,SPACING=200,TICK_LO=-887200,TICK_HI=887200; // 1% tier, full range rounded to spacing
-const PRICE_USDC_RAW=1000n;            // $0.001 = 1000 USDC units (6 dp) per 1 DUSTY (1e18 units)
-const DUSTY_PER_USD=1000n,CARD=200;    // observation slots for the 30-min TWAP
+const PRICE_USDC_RAW=300n;             // $0.0003 = 300 USDC units (6 dp) per 1 DUSTY (1e18 units)
+const TARGET_1E18=PRICE_USDC_RAW*10n**12n; // USD per DUSTY, 1e18 fixed (3e14)
+const CARD=200;    // observation slots for the 30-min TWAP
 const NPM_ABI=["function createAndInitializePoolIfNecessary(address,address,uint24,uint160) payable returns (address)",
  "function mint((address token0,address token1,uint24 fee,int24 tickLower,int24 tickUpper,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,address recipient,uint256 deadline)) payable returns (uint256 tokenId,uint128 liquidity,uint256 amount0,uint256 amount1)",
  "function positions(uint256) view returns (uint96,address,address token0,address token1,uint24 fee,int24 tickLower,int24 tickUpper,uint128 liquidity,uint256,uint256,uint128,uint128)",
@@ -86,7 +87,7 @@ function usdPerDusty1e18(sq,dustyIs0){const s=sq*sq;return dustyIs0?(s*10n**30n)
 const fmtUsd=v=>Number(ethers.formatUnits(v,18)).toPrecision(6);
 function amounts(){
  const u=ethers.parseUnits((($("usdc").value||"0").trim()),6);
- const d=u*10n**12n*DUSTY_PER_USD; // DUSTY units at $0.001
+ const d=u*10n**18n/PRICE_USDC_RAW; // DUSTY units at $0.0003 (15 USDC → 50,000 DUSTY)
  return {usdcRaw:u,dustyRaw:d}}
 function recalc(){try{const {dustyRaw}=amounts();$("dusty").value=Number(ethers.formatUnits(dustyRaw,18)).toLocaleString("en-US",{maximumFractionDigits:6})}catch{$("dusty").value="?"}}
 $("usdc").oninput=recalc;
@@ -150,16 +151,16 @@ $("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true
  // f. pool
  const target=sqrtX96(dustyIs0);
  let s0=null;if(pool!==ethers.ZeroAddress)s0=await new ethers.Contract(pool,P_ABI,pr).slot0();
- if(!s0||s0.sqrtPriceX96===0n){await send("f. Creating the DUSTY/USDC 1% pool at $0.001",()=>call(npm,"createAndInitializePoolIfNecessary",t0,t1,FEE,target));pool=await fac.getPool(t0,t1,FEE)}
+ if(!s0||s0.sqrtPriceX96===0n){await send("f. Creating the DUSTY/USDC 1% pool at $0.0003",()=>call(npm,"createAndInitializePoolIfNecessary",t0,t1,FEE,target));pool=await fac.getPool(t0,t1,FEE)}
  else say("f. Pool already exists: "+link(pool)+" ✓");
  save("pool",pool);
  const P=new ethers.Contract(pool,P_ABI,signer);s0=await P.slot0();
- const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=10n**15n;
+ const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=TARGET_1E18;
  const off=px>tgt?px-tgt:tgt-px;
  // g. liquidity (only if the pool price is within 2% of the target, so nobody's bad price is accepted)
  if(posLive)say("g. Liquidity already added (position #"+havePos+") ✓");
  else{
-  if(off*50n>tgt)throw new Error("the pool price is $"+fmtUsd(px)+", not $0.001. Someone else set it. Do not add liquidity; tell Hark.");
+  if(off*50n>tgt)throw new Error("the pool price is $"+fmtUsd(px)+", not $0.0003. Someone else set it. Do not add liquidity; tell Hark.");
   const a0=dustyIs0?dustyRaw:usdcRaw,a1=dustyIs0?usdcRaw:dustyRaw;
   const prm={token0:t0,token1:t1,fee:FEE,tickLower:TICK_LO,tickUpper:TICK_HI,amount0Desired:a0,amount1Desired:a1,amount0Min:a0*97n/100n,amount1Min:a1*97n/100n,recipient:me,deadline:BigInt(Math.floor(Date.now()/1000)+1200)};
   const r=await send("g. Adding full-range liquidity ("+ethers.formatUnits(usdcRaw,6)+" USDC + "+ethers.formatUnits(dustyRaw,18)+" DUSTY)",()=>call(npm,"mint",prm));
@@ -176,10 +177,10 @@ async function verify(tok,pool,dustyIs0){
  const pr=signer.provider,P=new ethers.Contract(pool,P_ABI,pr),npm=new ethers.Contract(NPM,NPM_ABI,pr),t=new ethers.Contract(tok,TABI,pr),u=new ethers.Contract(USDC,E_ABI,pr);
  const id=load("pos");
  const [s0,liq,p0,p1,fee,isM,pos,owner,pd,pu]=await Promise.all([P.slot0(),P.liquidity(),P.token0(),P.token1(),P.fee(),t.isMinter(me),id?npm.positions(BigInt(id)):null,id?npm.ownerOf(BigInt(id)):null,t.balanceOf(pool),u.balanceOf(pool)]);
- const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=10n**15n,off=px>tgt?px-tgt:tgt-px;
+ const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=TARGET_1E18,off=px>tgt?px-tgt:tgt-px;
  const perUsd=px>0n?(10n**36n/px):0n;
  const checks=[["pool tokens are DUSTY + USDC",[A(p0),A(p1)].includes(A(tok))&&[A(p0),A(p1)].includes(A(USDC))],["fee tier 1%",Number(fee)===FEE],
-  ["price ≈ $0.001 per DUSTY (now $"+fmtUsd(px)+")",off*100n<=tgt],["pool has liquidity",liq>0n],["your position #"+id+" is full range",!!pos&&Number(pos.tickLower)===TICK_LO&&Number(pos.tickUpper)===TICK_HI&&pos.liquidity>0n],
+  ["price ≈ $0.0003 per DUSTY (now $"+fmtUsd(px)+")",off*100n<=tgt],["pool has liquidity",liq>0n],["your position #"+id+" is full range",!!pos&&Number(pos.tickLower)===TICK_LO&&Number(pos.tickUpper)===TICK_HI&&pos.liquidity>0n],
   ["you own the position",!!owner&&A(owner)===A(me)],["your wallet can no longer mint",!isM],["30-min price history slots ≥ "+CARD,Number(s0.observationCardinalityNext)>=CARD]];
  const good=checks.every(x=>x[1]);
  block=`// ---- DUSTY POOL CONFIG (Uniswap v3, Base 8453) ----\nDUSTY_POOL = "${pool}"\nTOKEN_ADDRESS = "${tok}"\nUSDC = "${USDC}"\nFEE_TIER = ${FEE}\nTOKEN0 = "${p0}"\nTOKEN1 = "${p1}"\nPOSITION_ID = ${id}\nSQRT_PRICE_X96 = ${s0.sqrtPriceX96}\nTICK = ${s0.tick}\nPRICE_USD_PER_DUSTY = ${fmtUsd(px)}\nLIQUIDITY = ${liq}\nPOOL_DUSTY = ${ethers.formatUnits(pd,18)}\nPOOL_USDC = ${ethers.formatUnits(pu,6)}\nOBS_CARDINALITY_NEXT = ${s0.observationCardinalityNext}\nLP_OWNER = "${owner}"\n// verified: ${good}`;

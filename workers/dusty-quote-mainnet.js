@@ -10,7 +10,7 @@
 //
 // Pricing (market based):
 //   dust USD   = amount × price. USDC is fixed at $1. Other allowlisted Base tokens: DefiLlama coins API.
-//   DUSTY USD  = 30-minute TWAP of the DUSTY/USDC v3 pool (pool.observe). No DUSTY_POOL set → fixed $0.001.
+//   DUSTY USD  = 30-minute TWAP of the DUSTY/USDC v3 pool (pool.observe). No DUSTY_POOL set → fixed $0.001 (1,000/USD) fallback only.
 //                Pool set but TWAP unavailable, or TWAP vs spot differs by more than 20% → no quote (503).
 //   dustyOut   = dust USD / DUSTY USD (before fee; the contract takes feeBps), capped at recycler.maxDustyPerQuote().
 import { Wallet, JsonRpcProvider, Contract, getAddress } from "ethers";
@@ -20,7 +20,8 @@ const DEFAULT_RPC = "https://mainnet.base.org";
 const EXPECTED_SIGNER = "0xE3ed6685AcB201EB40370d181766424C00F2515f";
 export const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export const E18 = 10n ** 18n;
-export const FIXED_PRICE_1E18 = 10n ** 15n;   // $0.001 per DUSTY (1,000 DUSTY per $1) when no pool is configured
+export const FIXED_PRICE_1E18 = 10n ** 15n;   // fallback ONLY when DUSTY_POOL is unset: $0.001 = 1,000 DUSTY per $1.
+                                               // With a pool, the TWAP decides (launch pool starts at $0.0003 ≈ 3,333 DUSTY per $1).
 export const MAX_DEVIATION_BPS = 2000;         // 20% TWAP vs spot
 export const DEFAULT_TWAP = 1800;              // 30 minutes
 const MAX_USD_1E18 = 10n * E18;                // dust = under $10 per quote

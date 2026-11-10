@@ -14,7 +14,7 @@ Nothing below has been done on mainnet yet. Stan signs every on-chain step in Me
 | Limits (contract defaults) | 10,000 DUSTY per quote, 1,000,000 DUSTY per rolling 24h |
 | Uniswap v3 Factory (Base) | `0x33128a8fC17869897dcE68Ed026d694621f6FDfD` |
 | Uniswap v3 NonfungiblePositionManager (Base) | `0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1` |
-| Pool | DUSTY/USDC, fee tier 1% (10000), full range, start price $0.001 (1,000 DUSTY per $1); default seed 50 USDC + 50,000 DUSTY |
+| Pool | DUSTY/USDC, fee tier 1% (10000), full range, start price **$0.0003** (≈3,333 DUSTY per $1); default seed **15 USDC + 50,000 DUSTY** |
 
 Uniswap addresses from https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments, checked with `eth_getCode` on mainnet.base.org (both have code; `NPM.factory()` returns the Factory).
 
@@ -27,23 +27,25 @@ Uniswap addresses from https://docs.uniswap.org/contracts/v3/reference/deploymen
        (desktop: https://statxqo-clickit.github.io/dusty/deploy-mainnet.html).
 3. [ ] Connect → switches/adds Base → check the settings → tick both boxes → **Start deploy** → approve 4 transactions.
 4. [ ] All 12 read-back checks show ✓ → **Copy config for Hark** → send to Hark.
-5. [ ] **Seed the pool.** Stan needs the USDC to add (default 50) + a little ETH on Base in the admin wallet.
+5. [ ] **Seed the pool.** Stan needs the USDC to add (default 15) + a little ETH on Base in the admin wallet.
        Opens **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/seed-pool.html**
        (desktop: https://statxqo-clickit.github.io/dusty/seed-pool.html). Same device as the deploy page fills the token address.
        Tick the box → **Start** → approve up to 8 transactions:
        setMinter(self, budget = seed amount) → mintReward(self) → setMinter(self, false, 0) → approve DUSTY → approve USDC →
-       create pool at $0.001 → add full-range liquidity → turn on price history (200 observation slots).
+       create pool at $0.0003 → add full-range liquidity → turn on price history (200 observation slots).
        All read-back checks ✓ → **Copy pool config for Hark** → send to Hark.
-       Resumable: tap again after any stop; finished steps are skipped. It refuses to add liquidity if the pool already exists at a price more than 2% from $0.001.
+       Resumable: tap again after any stop; finished steps are skipped. It refuses to add liquidity if the pool already exists at a price more than 2% from $0.0003.
 6. [ ] Hark uploads the mainnet Worker with the recycler **and** the pool:
        `CLOUDFLARE_API_TOKEN=… tools/upload-mainnet-worker.sh <RECYCLER_ADDRESS> <DUSTY_POOL>` → expect `unit tests: pass` and `HEALTH OK pricing: twap`
        (Worker `dusty-quote-mainnet`, URL `https://dusty-quote-mainnet.statxqo.workers.dev`).
        Pricing: dust in USD (USDC = $1; other tokens via DefiLlama) ÷ DUSTY price from the pool's **30-min TWAP**, contract takes 5%, capped at `maxDustyPerQuote`.
        The Worker **refuses quotes** (503) until the pool is 30 min old, and whenever spot is more than 20% away from the TWAP. Seed at least 30 min before launch.
+       At the $0.0003 start price, $1 of dust pays ≈3,333 DUSTY, ≈3,167 to the user after the 5% fee.
+       The fixed rate (1,000 DUSTY per $1 = $0.001) is used **only when no DUSTY_POOL is configured**; it is not the launch rate.
        `/price` shows the current DUSTY price the Worker would use.
 7. [ ] Cloudflare dashboard: add a rate-limit rule on `/quote` (e.g. 20 req/min per IP) (M-2).
 8. [ ] Hark fills (flip LAUNCH_MODE last) `NETWORKS.mainnet.token` / `.recycler` in index.html, sets `LAUNCH_MODE = "mainnet"`, bumps sw cache, pushes.
-9. [ ] Smoke test with $1 of USDC on Base: expect **≈950 DUSTY** at $0.001 (varies with the pool price) and a basescan.org tx link.
+9. [ ] Smoke test with $1 of USDC on Base: expect **≈3,167 DUSTY** at the $0.0003 pool price (varies as the pool trades) and a basescan.org tx link.
 10. [ ] Verify both contracts on Basescan: `ETHERSCAN_API_KEY=… tools/basescan-verify.sh <TOKEN> <RECYCLER> <ADMIN> <GUARDIAN> <TREASURY> 0xE3ed6685AcB201EB40370d181766424C00F2515f 172800 500`
        (needs an Etherscan v2 API key).
 11. [ ] Later: move admin to a Safe (two-step, delay applies), separate guardian and treasury wallets.
