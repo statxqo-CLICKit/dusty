@@ -1,0 +1,191 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Seed the DUSTY/USDC pool on Base</title><meta name="robots" content="noindex">
+<link rel="icon" href="favicon-32.png">
+<script src="disclaimer.js" defer></script>
+<style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:520px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+.step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:14px;margin:12px 0}
+.step b{color:#39ff88}.step.done{border-color:#39ff88}.step.run{border-color:#ffcf5a}.step.bad{border-color:#ff6b6b}
+button{width:100%;min-height:48px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
+button.sec{background:#1f3a2c;color:#e8fff0}button:disabled{background:#2a3d33;color:#7a9}
+input{width:100%;min-height:44px;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:14px monospace;margin-top:6px}
+input[readonly]{border-color:#1f3a2c;color:#bfe}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}.err{color:#ff8a8a}
+.price{font-size:18px;color:#e8fff0;margin-top:10px}.price b{color:#39ff88}
+label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-start;margin-top:10px}.chk input{width:24px;min-height:24px;margin:2px 0 0;flex:none}.chk small{min-width:0;overflow-wrap:anywhere}
+.badge{display:inline-block;background:#3a1010;color:#ffb3b3;border:1px solid #ff6b6b;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
+.disc{color:#8ab;font-size:13px;margin-top:18px}</style></head>
+<body><main>
+<span class="badge">BASE MAINNET · REAL USDC + ETH GAS</span>
+<h1>Seed the DUSTY/USDC pool</h1>
+<small>Creates the DUSTY/USDC trading pool on Uniswap v3 (Base) and adds the first liquidity. You sign every step in your own MetaMask. Up to 8 confirmations. Run this after <a href="deploy-mainnet.html">Deploy on Base</a>. The USDC you add goes into the pool, where traders can swap it out for DUSTY; you can withdraw your position later from the Uniswap app.</small>
+
+<div class="step" id="s1"><b>1. Connect MetaMask on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
+
+<div class="step" id="s2"><b>2. Check the amounts</b>
+<label><small>DUSTY token address (filled from the deploy page on this device, or paste it)</small><input id="tok" placeholder="0x…" autocomplete="off"></label>
+<label><small>USDC to add</small><input id="usdc" value="50" inputmode="decimal"></label>
+<label><small>DUSTY to add (worked out for you at the starting price)</small><input id="dusty" value="50000" readonly></label>
+<div class="price" id="priceTxt">Starting price: <b>1 DUSTY = $0.001</b>, so <b>$1 buys 1,000 DUSTY</b>. Same as the recycle rate.</div>
+<small>Fee tier 1%. Full range (the pool can trade at any price).</small>
+<label class="chk"><input type="checkbox" id="ok1"><small>I understand this uses real USDC on Base mainnet, the contracts are unaudited, the pool price can move once people trade, and I pay the gas.</small></label>
+<div class="out" id="chkOut"></div></div>
+
+<div class="step" id="s3"><b>3. Seed the pool</b><small><br>Approve each step in MetaMask. If something stops, tap the button again: it skips what is already done.</small>
+<div class="out" id="plan">a. Give your wallet a one-time mint budget = exactly the DUSTY amount
+b. Mint that DUSTY to your wallet
+c. Remove your wallet's mint permission again
+d. Let Uniswap use your DUSTY (approve)
+e. Let Uniswap use your USDC (approve)
+f. Create the DUSTY/USDC 1% pool at $0.001
+g. Add full-range liquidity
+h. Turn on 30-minute price history (for the quote service)
+i. Read everything back</div>
+<button id="bGo">Start</button><div class="out" id="log"></div></div>
+
+<div class="step" id="s4"><b>4. Result</b><div class="out" id="cout">Not done yet.</div><button id="bCopy" class="sec" disabled>Copy pool config for Hark</button>
+<button id="bReset" class="sec">Start over (forget saved pool progress)</button></div>
+<p class="disc" data-disclaimer></p>
+<small><a href="deploy-mainnet.html">Deploy page</a> · <a href="recycler.html">Admin console</a> · <a href="terms.html">Terms</a></small>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const TABI=__TOKEN_ABI__;
+const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org";
+const USDC="__USDC__";                 // Circle USDC on Base
+const FACTORY="__V3_FACTORY__";        // Uniswap v3 Factory, Base (docs.uniswap.org)
+const NPM="__V3_NPM__";                // Uniswap v3 NonfungiblePositionManager, Base (docs.uniswap.org)
+const FEE=10000,SPACING=200,TICK_LO=-887200,TICK_HI=887200; // 1% tier, full range rounded to spacing
+const PRICE_USDC_RAW=1000n;            // $0.001 = 1000 USDC units (6 dp) per 1 DUSTY (1e18 units)
+const DUSTY_PER_USD=1000n,CARD=200;    // observation slots for the 30-min TWAP
+const NPM_ABI=["function createAndInitializePoolIfNecessary(address,address,uint24,uint160) payable returns (address)",
+ "function mint((address token0,address token1,uint24 fee,int24 tickLower,int24 tickUpper,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,address recipient,uint256 deadline)) payable returns (uint256 tokenId,uint128 liquidity,uint256 amount0,uint256 amount1)",
+ "function positions(uint256) view returns (uint96,address,address token0,address token1,uint24 fee,int24 tickLower,int24 tickUpper,uint128 liquidity,uint256,uint256,uint128,uint128)",
+ "function ownerOf(uint256) view returns (address)","function factory() view returns (address)",
+ "event IncreaseLiquidity(uint256 indexed tokenId,uint128 liquidity,uint256 amount0,uint256 amount1)"];
+const F_ABI=["function getPool(address,address,uint24) view returns (address)"];
+const P_ABI=["function slot0() view returns (uint160 sqrtPriceX96,int24 tick,uint16 observationIndex,uint16 observationCardinality,uint16 observationCardinalityNext,uint8 feeProtocol,bool unlocked)",
+ "function liquidity() view returns (uint128)","function token0() view returns (address)","function token1() view returns (address)","function fee() view returns (uint24)",
+ "function increaseObservationCardinalityNext(uint16)"];
+const E_ABI=["function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)","function decimals() view returns (uint8)","function symbol() view returns (string)"];
+const LS="dseed_";let signer,me;const $=id=>document.getElementById(id);
+const say=(t,cls)=>{const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=t;$("log").appendChild(d)};
+const emsg=e=>(e&&(e.shortMessage||e.reason||e.info?.error?.message||e.message))||String(e);
+const A=v=>ethers.getAddress(String(v).trim());
+const link=(a,t)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${a.slice(0,10)}…${a.slice(-6)}</a>`;
+const st=(id,c)=>{$(id).className="step "+(c||"")};
+const save=(k,v)=>localStorage.setItem(LS+k,v),load=k=>localStorage.getItem(LS+k);
+// ---- price math (BigInt, exact) ----
+function isqrt(n){if(n<2n)return n;let x=n,y=(x+1n)/2n;while(y<x){x=y;y=(x+n/x)/2n}return x}
+const Q192=1n<<192n;
+function order(tok){return BigInt(tok)<BigInt(USDC)?{t0:tok,t1:USDC,dustyIs0:true}:{t0:USDC,t1:tok,dustyIs0:false}}
+// sqrtPriceX96 = sqrt(token1 units per token0 unit) * 2^96
+function sqrtX96(dustyIs0){return dustyIs0?isqrt(PRICE_USDC_RAW*Q192/10n**18n):isqrt((10n**18n)*Q192/PRICE_USDC_RAW)}
+// USD per 1 DUSTY scaled by 1e18, from the pool's sqrtPriceX96
+function usdPerDusty1e18(sq,dustyIs0){const s=sq*sq;return dustyIs0?(s*10n**30n)/Q192:(Q192*10n**30n)/s}
+const fmtUsd=v=>Number(ethers.formatUnits(v,18)).toPrecision(6);
+function amounts(){
+ const u=ethers.parseUnits((($("usdc").value||"0").trim()),6);
+ const d=u*10n**12n*DUSTY_PER_USD; // DUSTY units at $0.001
+ return {usdcRaw:u,dustyRaw:d}}
+function recalc(){try{const {dustyRaw}=amounts();$("dusty").value=Number(ethers.formatUnits(dustyRaw,18)).toLocaleString("en-US",{maximumFractionDigits:6})}catch{$("dusty").value="?"}}
+$("usdc").oninput=recalc;
+// token address from the deploy page's saved config on this device
+(()=>{const t=load("tok")||localStorage.getItem("dmain_tok");if(t)$("tok").value=t;recalc()})();
+async function connect(){try{
+ if(!window.ethereum){$("who").innerHTML='No wallet found in this browser. Open this page inside the MetaMask app: tap <b>Browser</b> at the bottom, then paste <b>'+location.host+location.pathname+'</b>. <a href="https://metamask.app.link/dapp/'+location.host+location.pathname+'">Try opening MetaMask</a>';return}
+ await ethereum.request({method:"eth_requestAccounts"});
+ try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
+  if(e.code===4902||/unrecognized|not added/i.test(emsg(e)))await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://mainnet.base.org"],blockExplorerUrls:[SCAN]}]});else throw e}
+ const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
+ if(n.chainId!==CHAIN){$("who").textContent="Your wallet is not on Base. Switch to Base in MetaMask, then tap Connect again.";signer=null;st("s1","bad");return}
+ signer=await p.getSigner();me=await signer.getAddress();
+ const [bal,ub]=await Promise.all([p.getBalance(me),new ethers.Contract(USDC,E_ABI,p).balanceOf(me)]);
+ $("who").innerHTML=link(me)+"\n"+Number(ethers.formatEther(bal)).toFixed(5)+" ETH · "+ethers.formatUnits(ub,6)+" USDC on Base"+(bal<ethers.parseEther("0.0003")?'<br><span class="warn">⚠ Low ETH for gas. Add a little ETH on Base first.</span>':"");
+ st("s1","done");
+}catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
+window.ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
+window.ethereum?.on?.("accountsChanged",()=>{signer=null;$("who").textContent="Account changed. Tap Connect again."});
+async function need(){if(!signer)await connect();if(!signer)throw new Error("connect your wallet on Base first (step 1)");
+ const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base mainnet (8453)")}
+// gas limit = estimate +30% (first liquidity into a fresh pool can run out of gas at the bare estimate)
+const call=(c,m,...a)=>c[m].estimateGas(...a).then(g=>c[m](...a,{gasLimit:g*13n/10n+20000n}));
+async function send(label,fn){say(label+"… confirm in MetaMask");const tx=await fn();say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));const r=await tx.wait();if(!r||r.status!==1)throw new Error(label+" failed on chain");return r}
+$("bConnect").onclick=connect;
+$("bReset").onclick=()=>{if(confirm("Forget saved pool progress on this device? (Nothing on chain changes.)")){for(const k of ["tok","pos","pool"])localStorage.removeItem(LS+k);location.reload()}};
+let running=false,block="";
+$("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true;st("s3","run");$("log").innerHTML="";try{
+ await need();
+ if(!$("ok1").checked)throw new Error("tick the box in step 2");
+ const tok=A($("tok").value);const {usdcRaw,dustyRaw}=amounts();
+ if(usdcRaw<1000000n)throw new Error("add at least 1 USDC");
+ const pr=signer.provider;
+ if((await pr.getCode(tok))==="0x")throw new Error("no contract at the DUSTY address on Base");
+ if((await pr.getCode(NPM))==="0x"||A(await new ethers.Contract(NPM,NPM_ABI,pr).factory())!==A(FACTORY))throw new Error("Uniswap contracts not found on this network");
+ save("tok",tok);
+ const t=new ethers.Contract(tok,TABI,signer),u=new ethers.Contract(USDC,E_ABI,signer),npm=new ethers.Contract(NPM,NPM_ABI,signer),fac=new ethers.Contract(FACTORY,F_ABI,pr);
+ const [sym,dec,admin]=await Promise.all([t.symbol(),t.decimals(),t.owner()]);
+ if(sym!=="DUSTY"||Number(dec)!==18)throw new Error("that address is not the DUSTY token");
+ const {t0,t1,dustyIs0}=order(tok);
+ let pool=await fac.getPool(t0,t1,FEE);const havePos=load("pos");
+ let posLive=false;if(havePos){try{const p=await npm.positions(BigInt(havePos));posLive=p.liquidity>0n&&A(p.token0)===A(t0)&&A(p.token1)===A(t1)}catch{}}
+ // pre-flight: USDC balance (only if liquidity not yet added)
+ if(!posLive){const ub=await u.balanceOf(me);if(ub<usdcRaw)throw new Error("not enough USDC: you have "+ethers.formatUnits(ub,6)+", need "+ethers.formatUnits(usdcRaw,6))}
+ // a-c. mint the seed DUSTY with a budget that equals the amount, then revoke
+ const dBal=await t.balanceOf(me);const short=posLive?0n:(dustyRaw>dBal?dustyRaw-dBal:0n);
+ if(short>0n){
+  if(A(admin)!==A(me))throw new Error("connect the admin wallet ("+admin+") to mint the seed DUSTY");
+  const [isM,left]=await Promise.all([t.isMinter(me),t.minterAllowance(me)]);
+  if(isM&&left===short)say("a. Mint budget already set ✓");
+  else await send("a. Setting a one-time mint budget of "+ethers.formatUnits(short,18)+" DUSTY",()=>call(t,"setMinter",me,true,short));
+  await send("b. Minting "+ethers.formatUnits(short,18)+" DUSTY to your wallet",()=>call(t,"mintReward",me,short,ethers.id("DUSTY_POOL_SEED")));
+ }else say("a-b. Seed DUSTY already in your wallet ✓");
+ if(await t.isMinter(me))await send("c. Removing your wallet's mint permission",()=>call(t,"setMinter",me,false,0n));
+ else say("c. Your wallet cannot mint ✓");
+ // d-e. approvals (exact amounts)
+ if(!posLive){
+  if((await t.allowance(me,NPM))<dustyRaw)await send("d. Approving DUSTY for Uniswap",()=>call(t,"approve",NPM,dustyRaw));else say("d. DUSTY approved ✓");
+  if((await u.allowance(me,NPM))<usdcRaw)await send("e. Approving USDC for Uniswap",()=>call(u,"approve",NPM,usdcRaw));else say("e. USDC approved ✓");
+ }else say("d-e. Not needed (liquidity already added) ✓");
+ // f. pool
+ const target=sqrtX96(dustyIs0);
+ let s0=null;if(pool!==ethers.ZeroAddress)s0=await new ethers.Contract(pool,P_ABI,pr).slot0();
+ if(!s0||s0.sqrtPriceX96===0n){await send("f. Creating the DUSTY/USDC 1% pool at $0.001",()=>call(npm,"createAndInitializePoolIfNecessary",t0,t1,FEE,target));pool=await fac.getPool(t0,t1,FEE)}
+ else say("f. Pool already exists: "+link(pool)+" ✓");
+ save("pool",pool);
+ const P=new ethers.Contract(pool,P_ABI,signer);s0=await P.slot0();
+ const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=10n**15n;
+ const off=px>tgt?px-tgt:tgt-px;
+ // g. liquidity (only if the pool price is within 2% of the target, so nobody's bad price is accepted)
+ if(posLive)say("g. Liquidity already added (position #"+havePos+") ✓");
+ else{
+  if(off*50n>tgt)throw new Error("the pool price is $"+fmtUsd(px)+", not $0.001. Someone else set it. Do not add liquidity; tell Hark.");
+  const a0=dustyIs0?dustyRaw:usdcRaw,a1=dustyIs0?usdcRaw:dustyRaw;
+  const prm={token0:t0,token1:t1,fee:FEE,tickLower:TICK_LO,tickUpper:TICK_HI,amount0Desired:a0,amount1Desired:a1,amount0Min:a0*97n/100n,amount1Min:a1*97n/100n,recipient:me,deadline:BigInt(Math.floor(Date.now()/1000)+1200)};
+  const r=await send("g. Adding full-range liquidity ("+ethers.formatUnits(usdcRaw,6)+" USDC + "+ethers.formatUnits(dustyRaw,18)+" DUSTY)",()=>call(npm,"mint",prm));
+  let id=null;for(const l of r.logs){try{const e=npm.interface.parseLog(l);if(e&&e.name==="IncreaseLiquidity"){id=e.args.tokenId;break}}catch{}}
+  if(id===null)throw new Error("could not read the position id; tell Hark");
+  save("pos",id.toString());say("g. Position #"+id+" ✓")}
+ // h. price history slots for the TWAP
+ s0=await P.slot0();
+ if(Number(s0.observationCardinalityNext)<CARD)await send("h. Turning on 30-minute price history",()=>call(P,"increaseObservationCardinalityNext",CARD));
+ else say("h. Price history already on ✓");
+ say("i. Reading back…");await verify(tok,pool,dustyIs0);st("s3","done");$("bGo").textContent="Done ✓";
+}catch(e){say("Stopped: "+emsg(e)+"<br>Fix it, then tap the button again to resume.","err");st("s3","bad");$("bGo").disabled=false;$("bGo").textContent="Resume"}finally{running=false}};
+async function verify(tok,pool,dustyIs0){
+ const pr=signer.provider,P=new ethers.Contract(pool,P_ABI,pr),npm=new ethers.Contract(NPM,NPM_ABI,pr),t=new ethers.Contract(tok,TABI,pr),u=new ethers.Contract(USDC,E_ABI,pr);
+ const id=load("pos");
+ const [s0,liq,p0,p1,fee,isM,pos,owner,pd,pu]=await Promise.all([P.slot0(),P.liquidity(),P.token0(),P.token1(),P.fee(),t.isMinter(me),id?npm.positions(BigInt(id)):null,id?npm.ownerOf(BigInt(id)):null,t.balanceOf(pool),u.balanceOf(pool)]);
+ const px=usdPerDusty1e18(s0.sqrtPriceX96,dustyIs0),tgt=10n**15n,off=px>tgt?px-tgt:tgt-px;
+ const perUsd=px>0n?(10n**36n/px):0n;
+ const checks=[["pool tokens are DUSTY + USDC",[A(p0),A(p1)].includes(A(tok))&&[A(p0),A(p1)].includes(A(USDC))],["fee tier 1%",Number(fee)===FEE],
+  ["price ≈ $0.001 per DUSTY (now $"+fmtUsd(px)+")",off*100n<=tgt],["pool has liquidity",liq>0n],["your position #"+id+" is full range",!!pos&&Number(pos.tickLower)===TICK_LO&&Number(pos.tickUpper)===TICK_HI&&pos.liquidity>0n],
+  ["you own the position",!!owner&&A(owner)===A(me)],["your wallet can no longer mint",!isM],["30-min price history slots ≥ "+CARD,Number(s0.observationCardinalityNext)>=CARD]];
+ const good=checks.every(x=>x[1]);
+ block=`// ---- DUSTY POOL CONFIG (Uniswap v3, Base 8453) ----\nDUSTY_POOL = "${pool}"\nTOKEN_ADDRESS = "${tok}"\nUSDC = "${USDC}"\nFEE_TIER = ${FEE}\nTOKEN0 = "${p0}"\nTOKEN1 = "${p1}"\nPOSITION_ID = ${id}\nSQRT_PRICE_X96 = ${s0.sqrtPriceX96}\nTICK = ${s0.tick}\nPRICE_USD_PER_DUSTY = ${fmtUsd(px)}\nLIQUIDITY = ${liq}\nPOOL_DUSTY = ${ethers.formatUnits(pd,18)}\nPOOL_USDC = ${ethers.formatUnits(pu,6)}\nOBS_CARDINALITY_NEXT = ${s0.observationCardinalityNext}\nLP_OWNER = "${owner}"\n// verified: ${good}`;
+ $("cout").innerHTML=(good?'<b>✓ Pool is live. Copy this and send it to Hark.</b>':'<span class="err">⚠ Some checks failed. Send this to Hark before going further.</span>')+
+  "\n\nPrice now: 1 DUSTY = $"+fmtUsd(px)+" ($1 ≈ "+Number(perUsd/10n**12n)/1e6+" DUSTY)\nPool holds "+Number(ethers.formatUnits(pd,18)).toLocaleString("en-US")+" DUSTY + "+ethers.formatUnits(pu,6)+" USDC\n\n"+
+  checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+"\n\nPool "+link(pool)+"\n\n"+block.replace(/</g,"&lt;");
+ st("s4",good?"done":"bad");$("bCopy").disabled=false;say("i. "+(good?"All checks passed ✓":"Some checks failed ✗"),good?"":"err")}
+$("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(block);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",block)}};
+</script></body></html>
