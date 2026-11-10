@@ -17,11 +17,21 @@
     var p2 = function (n) { return (n < 10 ? "0" : "") + n; };
     function tick() {
       var ms = TARGET - Date.now();
-      if (ms <= 0) { el.innerHTML = "<span>\u267B Dusty is <b>Live now</b> \u2014 " + LINE + "</span>"; clearInterval(t); return; }
+      if (ms <= 0) { el.innerHTML = "<span>\u267B Dusty is <b>Live now</b> \u2014 " + LINE + "</span>"; return; }
       var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
       el.innerHTML = "<span>Dusty launches in <b>" + p2(h) + ":" + p2(m) + ":" + p2(s % 60) + "</b> \u2014 " + LINE + "</span><small>Launch: " + local + "</small>";
     }
-    var t = setInterval(tick, 1000); tick();
+    var big = document.querySelectorAll("[data-countdown]");
+    function tickBig() {
+      var ms = TARGET - Date.now();
+      big.forEach(function (b) {
+        if (ms <= 0) { b.innerHTML = "<b>Live now</b>"; return; }
+        var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+        b.innerHTML = (d ? "<span><b>" + d + "</b><i>days</i></span>" : "") + "<span><b>" + p2(h) + "</b><i>hrs</i></span><span><b>" + p2(m) + "</b><i>min</i></span><span><b>" + p2(s % 60) + "</b><i>sec</i></span>";
+      });
+    }
+    window.DUSTY_LAUNCH = TARGET;
+    var t = setInterval(function () { tick(); tickBig(); }, 1000); tick(); tickBig();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

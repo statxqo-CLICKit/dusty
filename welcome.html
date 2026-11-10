@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dusty · Recycle your wallet dust</title>
+<meta name="description" content="Recycle any dust in your wallet and receive DUSTY.">
+<meta property="og:title" content="Dusty · Recycle your wallet dust"><meta property="og:description" content="Recycle any dust in your wallet and receive DUSTY.">
+<meta property="og:image" content="https://statxqo-clickit.github.io/dusty/dusty-logo.png">
+<link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#060708">
+<style>
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:radial-gradient(120% 60% at 50% 0%,#0f2a14 0%,#060708 60%);color:#e8fff0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;overflow-x:hidden}
+a{color:#39ff14}
+.wrap{max-width:980px;margin:0 auto;padding:20px 18px 120px}
+.top{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.04em;font-size:20px}
+.top img{width:40px;height:40px;border-radius:10px}
+.hero{display:grid;gap:28px;align-items:center;margin-top:18px}
+@media(min-width:820px){.hero{grid-template-columns:1.1fr .9fr}}
+h1{font-size:clamp(30px,8vw,52px);line-height:1.08;margin:0;letter-spacing:-.01em}
+h1 span{color:#39ff14;text-shadow:0 0 18px rgba(57,255,20,.45)}
+.lead{color:#bcd6c4;font-size:18px;margin:14px 0 0}
+.cd{display:flex;gap:10px;margin:22px 0 6px;flex-wrap:wrap}
+.cd span{min-width:70px;flex:1 1 0;max-width:96px;text-align:center;background:#0b130e;border:1px solid #1f3a2c;border-radius:12px;padding:10px 4px}
+.cd b{display:block;font:800 28px/1.1 ui-monospace,Menlo,Consolas,monospace;color:#b6ff3b}
+.cd i{font-style:normal;font-size:12px;color:#8fb09b;text-transform:uppercase;letter-spacing:.08em}
+.cdl{font-size:13px;color:#8fb09b;margin:0}
+.btns{display:grid;gap:12px;margin-top:22px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 18px;border-radius:14px;font-weight:800;font-size:17px;text-decoration:none;border:0;cursor:pointer;width:100%}
+.btn.p{background:linear-gradient(180deg,#7dff5a,#39ff14 45%,#22c00a);color:#05200a;box-shadow:0 6px 24px -6px rgba(57,255,20,.6)}
+.btn.s{background:#16221a;color:#e8fff0;border:1px solid #2a4a34}
+.btn.d{background:#111;color:#8fa;border:1px dashed #2a4a34;cursor:default}
+.phone{justify-self:center;width:min(300px,80vw);aspect-ratio:9/19;border-radius:44px;padding:12px;background:linear-gradient(160deg,#2a2f33,#0c0e10);box-shadow:0 30px 80px -20px rgba(57,255,20,.35),inset 0 0 0 2px #3a4046}
+.screen{width:100%;height:100%;border-radius:34px;background:#060708;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;padding:34px 16px 16px;gap:10px}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:90px;height:22px;border-radius:12px;background:#000}
+.screen img{width:84px;height:84px;border-radius:20px;margin-top:8px;box-shadow:0 0 30px rgba(57,255,20,.4)}
+.screen .t{font-weight:800;font-size:20px}
+.row{width:100%;display:flex;justify-content:space-between;align-items:center;background:#0d1714;border:1px solid #1f3a2c;border-radius:12px;padding:9px 11px;font:13px ui-monospace,Menlo,monospace}
+.row b{color:#b6ff3b}.row s{color:#6c8;text-decoration:none}
+.arrow{color:#39ff14;font-size:20px;line-height:1}
+.got{width:100%;text-align:center;background:#071a0b;border:1px solid #39ff14;border-radius:12px;padding:10px;font-weight:800;color:#39ff14}
+.mini{margin-top:auto;width:100%;min-height:40px;border-radius:12px;background:#39ff14;color:#05200a;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+section{margin-top:56px}
+h2{font-size:24px;margin:0 0 12px}
+.cards{display:grid;gap:12px}
+@media(min-width:720px){.cards{grid-template-columns:repeat(3,1fr)}}
+.card{background:#0b130e;border:1px solid #1f3a2c;border-radius:16px;padding:16px}
+.card .e{font-size:28px}.card b{display:block;font-size:17px;margin:6px 0 4px}.card p{margin:0;color:#a9c4b4;font-size:15px}
+.soon{display:inline-block;font:700 11px ui-monospace,monospace;color:#ffcf5a;border:1px solid #ffcf5a;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.steps{counter-reset:s;display:grid;gap:10px;padding:0;margin:0;list-style:none}
+.steps li{counter-increment:s;background:#0b130e;border:1px solid #1f3a2c;border-radius:14px;padding:12px 14px 12px 52px;position:relative;color:#cfe6d6}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:#39ff14;color:#05200a;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}.tabs button{flex:1;min-height:44px;border-radius:10px;border:1px solid #2a4a34;background:#0b130e;color:#e8fff0;font-weight:700;font-size:15px}
+.tabs button[aria-selected=true]{background:#39ff14;color:#05200a;border-color:#39ff14}
+.disc{font-size:13px;color:#8fb09b;text-align:center;margin:48px auto 0;max-width:640px}
+footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}
+</style>
+<script src="countdown.js" defer></script><script src="disclaimer.js" defer></script><script src="ask-dusty.js" defer></script>
+</head><body><div class="wrap">
+<div class="top"><img src="dusty-logo.png" alt="Dusty logo" width="40" height="40">DUSTY</div>
+<div class="hero">
+ <div>
+  <h1>Recycle any dust in your wallet and receive <span>DUSTY</span></h1>
+  <p class="lead">Those tiny leftover balances are too small to swap and just clutter your wallet. Dusty turns that useless dust into DUSTY in a few taps.</p>
+  <div class="cd" data-countdown aria-live="polite"></div>
+  <p class="cdl" id="cdl"></p>
+  <div class="btns">
+   <a class="btn p" href="./">♻ Open the app</a>
+   <a class="btn s" href="#install">📲 Install on your phone</a>
+   <span class="btn d" aria-disabled="true">▶ Google Play · coming soon</span>
+  </div>
+ </div>
+ <div class="phone" aria-hidden="true"><div class="screen"><div class="notch"></div>
+  <img src="dusty-logo.png" alt="">
+  <div class="t">Dust found</div>
+  <div class="row"><span>0.41 USDC</span><s>$0.41</s></div>
+  <div class="row"><span>0.92 USDC</span><s>$0.92</s></div>
+  <div class="arrow">↓</div>
+  <div class="got">+1,263 DUSTY</div>
+  <div class="mini">♻ Recycle dust</div>
+ </div></div>
+</div>
+
+<section><h2>Why Dusty</h2><div class="cards">
+ <div class="card"><div class="e">🧹</div><b>Dust is useless</b><p>Cents of a token are worth less than the gas to move them. They just sit there.</p></div>
+ <div class="card"><div class="e">♻️</div><b>Dusty recycles it</b><p>Pick your dust, confirm in your own wallet, and it is recycled on Base. You never share your seed phrase.</p></div>
+ <div class="card"><div class="e">✨</div><b>You receive DUSTY</b><p>DUSTY lands in your wallet right away, minus a 5% recycle fee.</p></div>
+</div></section>
+
+<section><h2>Coming soon</h2><div class="cards">
+ <div class="card"><div class="e">🎁</div><b>Dust Drops <span class="soon">SOON</span></b><p>Free one-of-a-kind NFT Dust Drops for recyclers. Every drop is unique.</p></div>
+ <div class="card"><div class="e">🤝</div><b>Referral rewards <span class="soon">SOON</span></b><p>Invite friends to clean up their wallets and earn DUSTY rewards.</p></div>
+ <div class="card"><div class="e">🏆</div><b>Buddy Contest <span class="soon">SOON</span></b><p>Team up with a buddy and climb the board together.</p></div>
+</div></section>
+
+<section id="install"><h2>Install on your phone</h2>
+ <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-t="a">Android</button><button role="tab" aria-selected="false" data-t="i">iPhone</button></div>
+ <ol class="steps" id="st-a"><li>Open <b>statxqo-clickit.github.io/dusty</b> in Chrome.</li><li>Tap the <b>⋮</b> menu at the top right.</li><li>Tap <b>Install app</b> (or <b>Add to Home screen</b>).</li><li>Open Dusty from your home screen. To recycle, open it inside your wallet app's browser (MetaMask: Browser tab).</li></ol>
+ <ol class="steps" id="st-i" hidden><li>Open <b>statxqo-clickit.github.io/dusty</b> in Safari.</li><li>Tap the <b>Share</b> button (square with an arrow).</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open Dusty from your home screen. To recycle, open it inside your wallet app's browser (MetaMask: Browser tab).</li></ol>
+ <div class="btns"><button class="btn p" id="bInstall" hidden>📲 Install Dusty now</button></div>
+</section>
+
+<p class="disc" data-disclaimer></p>
+<footer><a href="terms.html">Terms</a> · <a href="./">Open the app</a></footer>
+</div>
+<script>
+document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x===b)});document.getElementById("st-a").hidden=b.dataset.t!=="a";document.getElementById("st-i").hidden=b.dataset.t!=="i"}});
+if(/iPhone|iPad|iPod/.test(navigator.userAgent))document.querySelector('[data-t="i"]').click();
+var ev=null;addEventListener("beforeinstallprompt",function(e){e.preventDefault();ev=e;document.getElementById("bInstall").hidden=false});
+document.getElementById("bInstall").onclick=function(){if(ev){ev.prompt();ev=null;this.hidden=true}};
+addEventListener("load",function(){if(window.DUSTY_LAUNCH){document.getElementById("cdl").textContent=(Date.now()<window.DUSTY_LAUNCH?"Launch: ":"Launched ")+new Date(window.DUSTY_LAUNCH).toLocaleString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"})}
+ if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./sw.js").catch(function(){})});
+</script>
+</body></html>
