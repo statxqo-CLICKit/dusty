@@ -346,6 +346,9 @@
       .x-stat.x-hidden { display: none; }
       .x-stat.is-ok #x-statspin, .x-stat.is-bad #x-statspin { display: none; }
       .x-rowsoon { font: 700 10px var(--x-mono); color: var(--x-ink2); border: 1px solid #444; border-radius: 3px; padding: 1px 5px; margin-left: 6px; }
+      .x-amtwrap { display: grid; gap: 6px; font: 600 14px var(--x-mono); color: var(--x-ink); }
+      .x-amtwrap input { min-height: 48px; border-radius: 10px; border: 1px solid rgba(57,255,20,.45); background: #050a06; color: var(--x-green); font: 700 18px var(--x-mono); padding: 0 12px; width: 100%; box-sizing: border-box; }
+      .x-amtwrap small { color: var(--x-ink2); font-weight: 400; font-size: 12px; }
       .x-pill {
         position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
         font: 12px var(--x-mono); color: var(--x-ink2); white-space: nowrap; padding: 8px 14px; border-radius: 6px;
@@ -353,6 +356,8 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(57, 255, 20, 0.2), 0 8px 20px -6px #000;
         display: flex; align-items: center; gap: 8px;
       }
+      #x-netbadge { position: static; transform: none; margin: 10px auto 0; width: max-content; max-width: 100%; }
+      #x-netbadge.x-hidden { display: none; }
       .x-pill::before { content: ""; width: 7px; height: 7px; border-radius: 9px; background: var(--x-green); box-shadow: 0 0 8px var(--x-green); animation: x-blink 1.4s steps(2) infinite; }
       .x-toast {
         position: fixed; left: 50%; bottom: 70px; z-index: 40; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
@@ -402,6 +407,7 @@
         </div>
       </header>
       <div class="x-dots" id="x-dots" role="progressbar" aria-label="Onboarding step" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i></i><i></i><i></i><i></i></div>
+      <div class="x-pill x-hidden" id="x-netbadge"></div>
 
       <main class="x-stage">
         <!-- 1 Welcome -->
@@ -487,6 +493,7 @@
           </div>
           <div id="x-results" class="x-hidden" style="display: flex; flex-direction: column; gap: 14px">
             <div class="x-card x-listcard" data-label="DUST SCAN"><ul class="x-list" id="x-list"></ul></div>
+            <label class="x-amtwrap x-hidden" id="x-amtwrap"><span id="x-amtlabel">Amount to recycle</span><input id="x-amt" inputmode="decimal" autocomplete="off" aria-describedby="x-amtmax"><small id="x-amtmax"></small></label>
             <div class="x-card" data-label="OUTPUT">
               <div class="x-totals">
                 <div><span>Selected dust</span><strong id="x-usd">$0.00</strong></div>
@@ -543,7 +550,6 @@
     </div>
 
     <canvas id="x-fx" aria-hidden="true"></canvas>
-    <div class="x-pill x-hidden" id="x-netbadge"></div>
     <div class="x-toast" id="x-toast" role="status" aria-live="polite"></div>
 
     <script>
@@ -1051,7 +1057,7 @@
           if (rc) {
             const cap = (10n ** BigInt(x.dec) * 999n) / 100n; // stay under $10 per quote
             const amt = x.raw < cap ? x.raw : cap;
-            return groups.dust.push({ ...row, usd: units(amt, x.dec) * rc.usd, raw: amt, addr: x.addr, dec: x.dec, amtText: fmtAmt(units(amt, x.dec)) });
+            return groups.dust.push({ ...row, usd: units(amt, x.dec) * rc.usd, raw: amt, max: amt, px: rc.usd, addr: x.addr, dec: x.dec, amtText: fmtAmt(units(amt, x.dec)) });
           }
           if (x.chain.testnet) return;
           const p = prices[(x.priceKey || "").toLowerCase()];
@@ -1086,11 +1092,18 @@
         if (g.unpriced.length) html += `<li class="x-grouphead">No price found · left alone</li>` + g.unpriced.map((t) => off(t, "n/a")).join("");
         if (g.failed.length) html += `<li class="x-grouphead x-grouphead--warn">Couldn't reach: ${esc(g.failed.join(", "))}</li>`;
         $("#x-list").innerHTML = html;
+        const r0 = dustRows[0];
+        $("#x-amtwrap").classList.toggle("x-hidden", !r0);
+        if (r0) {
+          $("#x-amtlabel").textContent = `Amount of ${r0.sym} to recycle`;
+          $("#x-amt").value = String(units(r0.raw, r0.dec));
+          $("#x-amtmax").textContent = `Up to ${fmtAmt(units(r0.max, r0.dec))} ${r0.sym} per recycle (dust is under $${DUST_MAX_USD}).`;
+        }
         updateTotals();
       }
       function selectedCents() {
         let c = 0;
-        document.querySelectorAll("#x-list input:checked").forEach((el) => (c += Math.max(1, Math.round((dustRows[+el.dataset.i].usd || 0) * 100))));
+        document.querySelectorAll("#x-list input:checked").forEach((el) => { const u = dustRows[+el.dataset.i].usd || 0; if (u > 0) c += Math.max(1, Math.round(u * 100)); });
         return c;
       }
       const fmt = (n) => n.toLocaleString("en-US");
@@ -1102,6 +1115,20 @@
         if (!LIVE) $("#x-recycle").textContent = "♻ Recycling opens soon";
       }
       $("#x-list").addEventListener("change", updateTotals);
+      $("#x-amt").addEventListener("input", () => {
+        const r0 = dustRows[0]; if (!r0) return;
+        const v = String($("#x-amt").value).replace(",", ".").trim();
+        let raw = 0n;
+        if (/^\d*\.?\d*$/.test(v) && v !== "" && v !== ".") {
+          const [w, f = ""] = v.split(".");
+          raw = BigInt(w || "0") * 10n ** BigInt(r0.dec) + BigInt((f + "0".repeat(r0.dec)).slice(0, r0.dec) || "0");
+        }
+        if (raw > r0.max) { raw = r0.max; $("#x-amt").value = String(units(raw, r0.dec)); }
+        r0.raw = raw; r0.usd = units(raw, r0.dec) * r0.px;
+        const usdEl = document.querySelector('#x-list input[data-i="0"]')?.closest(".x-row")?.querySelector(".x-usd");
+        if (usdEl) usdEl.textContent = usdText(r0.usd);
+        updateTotals();
+      });
 
       /* oscilloscope: a periodic waveform (loops at x=400) and LED bar graph */
       (function scope() {
@@ -1164,7 +1191,7 @@
       $("#x-recycle").addEventListener("click", async () => {
         if (busy || !session.provider || !LIVE) return;
         const picked = [...document.querySelectorAll("#x-list input:checked")];
-        const rows = picked.map((el) => dustRows[+el.dataset.i]).filter((r) => r && r.addr);
+        const rows = picked.map((el) => dustRows[+el.dataset.i]).filter((r) => r && r.addr && r.raw > 0n);
         if (!rows.length) return;
         busy = true; const btn = $("#x-recycle"); btn.disabled = true; showErr("#x-recycle-err", "");
         let lastTx = "";

@@ -1,11 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dusty · Deploy v2 (testnet)</title><meta name="robots" content="noindex">
-<style>body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
-main{max-width:480px;width:100%;padding:24px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+<style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:480px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}
 .step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:16px;margin:14px 0}
-.step b{color:#39ff88}button{width:100%;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
-button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:13px monospace;margin-top:6px}
-.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}label{display:block;margin-top:8px}</style></head>
+.step b{color:#39ff88}button{width:100%;min-height:48px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
+button:disabled{background:#2a3d33;color:#7a9;}input{width:100%;min-height:44px;font-size:14px;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font-family:monospace;margin-top:6px}input[type=checkbox]{min-height:24px;width:24px}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab;overflow-wrap:anywhere}.warn{color:#ffcf5a}label{display:block;margin-top:8px}</style></head>
 <body><main><h1>Deploy Dusty v2</h1><small>Base Sepolia testnet only · unaudited · no real value · you sign every step in your own wallet (MetaMask). Not financial advice.</small>
 <div class="step"><b>1. Connect</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect wallet</button>
 <small>No test ETH? <a href="https://portal.cdp.coinbase.com/onchain-tools/faucet" target="_blank" rel="noopener">Coinbase faucet (Base Sepolia ETH)</a></small></div>
