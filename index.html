@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#060708" />
     <title>Dusty · Dust Recycler</title>
-    <meta name="description" content="Dusty: sweep wallet dust into $DUSTY. Testnet prototype." />
+    <meta name="description" content="Dusty: recycle the dust in your wallet and receive $DUSTY on Base." />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -303,7 +303,6 @@
       .x-empty { list-style: none; text-align: center; padding: 16px 10px; color: var(--x-ink2); font-size: 14px; }
       .x-empty:empty { display: none; }
       .x-sigline { text-align: center; font: 12px var(--x-mono); color: var(--x-ink3); margin: 6px 0 0; word-break: break-all; }
-      .x-demotag { display: inline-block; font: 700 11px var(--x-mono); letter-spacing: 0.12em; color: var(--x-haz); border: 1px solid var(--x-haz); border-radius: 3px; padding: 2px 6px; margin-left: 6px; vertical-align: middle; -webkit-text-fill-color: var(--x-haz); }
 
       /* success */
       .x-win { text-align: center; align-items: center; }
@@ -339,6 +338,14 @@
       .x-badge { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--x-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: 4px; background: #031103; color: var(--x-green); border: 1px solid rgba(57, 255, 20, 0.5); box-shadow: 0 0 10px -2px rgba(57, 255, 20, 0.5); text-shadow: 0 0 5px rgba(57, 255, 20, 0.6); }
       .x-signed { text-shadow: 0 0 8px rgba(57, 255, 20, 0.7); font-family: var(--x-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 
+      .x-disc { font-size: 12px; line-height: 1.45; color: var(--x-ink2); text-align: center; margin: 4px 0 0; }
+      .x-disc a { color: var(--x-green); }
+      .x-netwarn { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px; border-radius: 10px; border: 1px solid var(--x-haz); background: #140d00; color: #ffd27a; font-size: 14px; }
+      .x-netwarn.x-hidden { display: none; }
+      .x-stat { display: flex; gap: 10px; align-items: center; font: 14px/1.4 var(--x-mono); color: var(--x-ink); padding: 10px 12px; border-radius: 10px; background: rgba(57,255,20,.06); border: 1px solid rgba(57,255,20,.25); }
+      .x-stat.x-hidden { display: none; }
+      .x-stat.is-ok #x-statspin, .x-stat.is-bad #x-statspin { display: none; }
+      .x-rowsoon { font: 700 10px var(--x-mono); color: var(--x-ink2); border: 1px solid #444; border-radius: 3px; padding: 1px 5px; margin-left: 6px; }
       .x-pill {
         position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
         font: 12px var(--x-mono); color: var(--x-ink2); white-space: nowrap; padding: 8px 14px; border-radius: 6px;
@@ -361,6 +368,8 @@
       }
     </style>
       <script src="countdown.js" defer></script>
+      <script src="disclaimer.js" defer></script>
+      <script src="ask-dusty.js" defer></script>
   </head>
   <body>
     <canvas id="x-dust" aria-hidden="true"></canvas>
@@ -405,6 +414,7 @@
           <p class="x-lead">Sweep the tiny leftovers in your wallet into <b class="x-tick-sym">$DUSTY</b>.</p>
           <p class="x-note" style="justify-content: center; font-size: 13px"><svg><use href="#x-shield" /></svg>Works with MetaMask, Coinbase Wallet, Rabby and more.</p>
           <button class="x-btn" type="button" data-go="2" style="margin-top: 12px">Connect wallet</button>
+          <p class="x-disc" data-disclaimer></p>
           <div class="x-card x-soon" data-label="SOON">
             <h3>Coming soon</h3>
             <ul>
@@ -483,12 +493,12 @@
                 <div><span>You'll receive ≈</span><strong id="x-out">0</strong></div>
               </div>
             </div>
-            <p class="x-note" style="font-size: 13px"><svg><use href="#x-shield" /></svg><span>Balances above are read live from your wallet (read-only). Recycling is a <b style="color:var(--x-haz)">testnet demo</b>: no swap, no transaction, your tokens stay put. Demo rate: 1,000 <span class="x-tick-sym">$DUSTY</span> per $1.</span></p>
-            <button class="x-btn" type="button" id="x-recycle">♻ Recycle dust · demo</button>
-            <button class="x-btn x-hidden" type="button" id="x-testrecycle">♻ Recycle testnet USDC · real Base Sepolia tx</button>
-            <p id="x-teststat" style="font-size:12px;opacity:.8;margin:6px 0 0"></p>
-            <button class="x-btn x-btn--grey x-hidden" type="button" id="x-demo">Preview with demo dust</button>
-            <button class="x-btn x-btn--grey x-hidden" type="button" id="x-rescan">Back to my real balances</button>
+            <div class="x-netwarn x-hidden" id="x-netwarn" role="alert"><span id="x-netwarn-t">Your wallet is on another network.</span><button class="x-btn x-btn--sm" type="button" id="x-switch">Switch to Base</button></div>
+            <p class="x-note" style="font-size: 13px"><svg><use href="#x-shield" /></svg><span id="x-scannote">Balances are read live from your wallet. Only the dust you tick is recycled, and only after you confirm in your wallet. A 5% recycle fee is taken in DUSTY.</span></p>
+            <button class="x-btn" type="button" id="x-recycle" disabled>♻ Recycle dust</button>
+            <div class="x-stat x-hidden" id="x-stat" role="status" aria-live="polite"><span class="x-spinner" id="x-statspin"></span><span id="x-stattext"></span></div>
+            <p class="x-err x-hidden" id="x-recycle-err" role="alert"></p>
+            <p class="x-disc" data-disclaimer></p>
           </div>
         </section>
 
@@ -496,7 +506,8 @@
         <section class="x-screen x-win" data-step="5" aria-label="Done">
           <svg class="x-mark" id="x-winmark" aria-hidden="true"><use href="#x-logo" /></svg>
           <p class="x-amount" id="x-amount">+2,890 $DUSTY</p>
-          <p class="x-sub" id="x-winsub" style="margin-top: -8px">demo result · no transaction was sent</p>
+          <p class="x-sub" id="x-winsub" style="margin-top: -8px">DUSTY received in your wallet</p>
+          <a class="x-btn x-btn--grey" id="x-txlink" href="#" target="_blank" rel="noopener" style="text-decoration:none">View transaction on Basescan ↗</a>
           <div class="x-card x-token" data-label="OUTPUT">
             <div class="x-token__head">
               <div class="x-coin"><svg aria-hidden="true"><use href="#x-logo" /></svg></div>
@@ -504,14 +515,14 @@
                 <div style="font-weight: 700; font-size: 20px" class="x-name-sym">Dusty</div>
                 <div style="color: var(--x-ink2); font: 14px var(--x-mono)" class="x-tick-sym">$DUSTY</div>
               </div>
-              <span class="x-badge">♻ Demo</span>
+              <span class="x-badge">♻ Recycled</span>
             </div>
             <dl>
               <dt>Name</dt><dd class="x-name-sym">Dusty</dd>
               <dt>Ticker</dt><dd class="x-tick-raw">DUSTY</dd>
-              <dt>Network</dt><dd>Base Sepolia (testnet)</dd>
+              <dt>Network</dt><dd id="x-netname">Base</dd>
               <dt>Balance</dt><dd id="x-bal">2,890</dd>
-              <dt>Status</dt><dd id="x-status">Demo · not minted yet</dd>
+              <dt>Status</dt><dd id="x-status">Received</dd>
             </dl>
             <button class="x-btn x-btn--grey" type="button" id="x-add">Add $DUSTY to wallet</button>
           </div>
@@ -526,24 +537,37 @@
             </ul>
           </div>
           <button class="x-btn x-btn--red" type="button" id="x-again">Start over</button>
+          <p class="x-disc" data-disclaimer></p>
         </section>
       </main>
     </div>
 
     <canvas id="x-fx" aria-hidden="true"></canvas>
-    <div class="x-pill">Testnet prototype · demo data · no real transactions</div>
+    <div class="x-pill x-hidden" id="x-netbadge"></div>
     <div class="x-toast" id="x-toast" role="status" aria-live="polite"></div>
 
     <script>
       // Rename the token here
       const TOKEN_TICKER = "DUSTY";
       const TOKEN_NAME = "Dusty";
-      const TOKEN_ADDRESS = "0x297cBf5BB6CE735D879557E1099954569E246D43"; // Base Sepolia (84532), testnet
-      const RECYCLER_ADDRESS = "0x199Fef502B969018091294a69e6634DA7aC9e64d"; // Base Sepolia, 5% fee, testnet
-      const RATE = 1000; // TOKEN per $1, demo only
-      const QUOTE_URL = "https://dusty-quote.statxqo.workers.dev/quote"; // testnet quote signer
-      const TEST_RECYCLE = ["0x036cbd53842c5426634e7929541ec2318f3dcf7e"]; // Base Sepolia USDC
-      let testRows = [];
+      /* ================= LAUNCH CONFIG: the only block to edit when going live ================= */
+      const LAUNCH_MODE = "testnet"; // "testnet" (Base Sepolia) | "mainnet" (Base). Flip only after mainnet addresses are filled in.
+      const NETWORKS = {
+        testnet: { chainId: 84532, hex: "0x14a34", name: "Base Sepolia", rpc: "https://sepolia.base.org", scan: "https://sepolia.basescan.org",
+          token: "0x297cBf5BB6CE735D879557E1099954569E246D43", recycler: "0x199Fef502B969018091294a69e6634DA7aC9e64d", recyclerVersion: 1,
+          quote: "https://dusty-quote.statxqo.workers.dev/quote", recyclable: { "0x036cbd53842c5426634e7929541ec2318f3dcf7e": { sym: "USDC", dec: 6, usd: 1 } } },
+        mainnet: { chainId: 8453, hex: "0x2105", name: "Base", rpc: "https://mainnet.base.org", scan: "https://basescan.org",
+          token: "", recycler: "", recyclerVersion: 2, // ← fill from deploy-mainnet.html "Copy config"
+          quote: "https://dusty-quote-mainnet.statxqo.workers.dev/quote", recyclable: { "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": { sym: "USDC", dec: 6, usd: 1 } } },
+      };
+      const NET = NETWORKS[LAUNCH_MODE];
+      const IS_TEST = LAUNCH_MODE !== "mainnet";
+      const LIVE = !!(NET.token && NET.recycler);
+      const TOKEN_ADDRESS = NET.token, RECYCLER_ADDRESS = NET.recycler, QUOTE_URL = NET.quote;
+      const RATE = 1000; // DUSTY per $1 of dust (before the 5% fee)
+      const FEE_BPS = 500;
+      /* ========================================================================================== */
+      let recRows = [];
       const DUST_MAX_USD = 10; // a balance under this (in USD) counts as dust
       // WalletConnect: paste a project id from https://cloud.reown.com to switch on the QR / mobile-wallet fallback
       const WC_PROJECT_ID = "285acdd88b8d03791c962a3df94f70fa";
@@ -573,16 +597,10 @@
         { id: 84532, key: "base-sepolia", name: "Base Sepolia", native: "ETH", testnet: true,
           rpc: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"],
           tokens: [["USDC","0x036CbD53842c5426634e7929541eC2318f3dCF7e",6]] },
-      ];
+      ].filter((c) => IS_TEST || !c.testnet);
       const CHAIN_NAMES = { 1: "Ethereum", 10: "Optimism", 56: "BNB Chain", 137: "Polygon", 8453: "Base", 42161: "Arbitrum", 84532: "Base Sepolia", 11155111: "Sepolia" };
 
-      // Demo-only preview list (used only when the user taps "Preview with demo dust")
-      const DEMO_TOKENS = [
-        { sym: "ETH", amt: "0.00031", usd: 0.98, chain: "Base · demo" },
-        { sym: "USDC.e", amt: "0.41", usd: 0.41, chain: "Arbitrum · demo" },
-        { sym: "PEPE", amt: "88,000", usd: 0.62, chain: "Ethereum · demo" },
-        { sym: "GHO", amt: "12.9", usd: 0.15, chain: "Ethereum · demo" },
-      ];
+
 
       const $ = (s) => document.querySelector(s);
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -785,7 +803,7 @@
             projectId: WC_PROJECT_ID,
             optionalChains: [84532, 8453, 1, 42161, 10, 137],
             showQrModal: true,
-            metadata: { name: TOKEN_NAME, description: "Dust Recycler (testnet prototype)", url: location.origin, icons: [new URL("icon-192.png", location.href).href] },
+            metadata: { name: TOKEN_NAME, description: "Recycle wallet dust into DUSTY", url: location.origin, icons: [new URL("icon-192.png", location.href).href] },
           });
           await wc.connect();
           session.wc = wc;
@@ -833,7 +851,7 @@
             toast("Account switched · sign again");
             go(2);
           },
-          chainChanged: (c) => { session.chainId = parseInt(c, 16) || session.chainId; updateVia(); if (step === 3 && !session.signature) prepSign(); },
+          chainChanged: (c) => { session.chainId = parseInt(c, 16) || session.chainId; updateVia(); checkNet(); if (step === 3 && !session.signature) prepSign(); },
           disconnect: () => restart(true),
         };
         Object.entries(listeners).forEach(([k, f]) => p.on(k, f));
@@ -1003,21 +1021,13 @@
         } finally { clearTimeout(t); }
       }
 
-      let scanRun = 0, dustRows = [], usingDemo = false;
+      let scanRun = 0, dustRows = [];
       async function startScan(demo) {
         const run = ++scanRun;
-        usingDemo = !!demo;
         $("#x-scanning").classList.remove("x-hidden");
         $("#x-results").classList.add("x-hidden");
-        $("#x-scan-title").textContent = demo ? "Loading demo dust…" : "Scanning for dust…";
+        $("#x-scan-title").textContent = "Scanning for dust…";
         const line = (t) => run === scanRun && ($("#x-scanline").textContent = t);
-        if (demo) {
-          line("Demo data · not your wallet");
-          await new Promise((r) => setTimeout(r, reduce ? 200 : 900));
-          if (run !== scanRun) return;
-          dustRows = DEMO_TOKENS.map((t) => ({ sym: t.sym, amtText: t.amt, usd: t.usd, sub: t.chain }));
-          return renderList({ dust: dustRows, kept: [], unpriced: [], testnet: [], failed: [] });
-        }
         const addr = session.address;
         const total = CHAINS.reduce((n, c) => n + c.tokens.length + 1, 0);
         line(`Reading ${total} balances on ${short(addr)}`);
@@ -1033,22 +1043,28 @@
         let prices = {};
         try { prices = await priceAll(all); } catch (_) {}
         if (run !== scanRun) return;
-        const groups = { dust: [], kept: [], unpriced: [], testnet: [], failed };
+        const groups = { dust: [], soon: [], kept: [], unpriced: [], failed };
         all.forEach((x) => {
-          const sub = x.chain.name + (x.chain.testnet ? " · testnet" : "");
+          const sub = x.chain.name;
           const row = { sym: x.sym, amtText: fmtAmt(x.amount), sub };
-          if (x.chain.testnet) return groups.testnet.push({ ...row, usd: 0 });
+          const rc = x.chain.id === NET.chainId && x.addr && NET.recyclable[x.addr.toLowerCase()];
+          if (rc) {
+            const cap = (10n ** BigInt(x.dec) * 999n) / 100n; // stay under $10 per quote
+            const amt = x.raw < cap ? x.raw : cap;
+            return groups.dust.push({ ...row, usd: units(amt, x.dec) * rc.usd, raw: amt, addr: x.addr, dec: x.dec, amtText: fmtAmt(units(amt, x.dec)) });
+          }
+          if (x.chain.testnet) return;
           const p = prices[(x.priceKey || "").toLowerCase()];
           if (typeof p !== "number") return groups.unpriced.push(row);
           row.usd = x.amount * p;
-          (row.usd < DUST_MAX_USD ? groups.dust : groups.kept).push(row);
+          (row.usd < DUST_MAX_USD ? groups.soon : groups.kept).push(row);
         });
         groups.dust.sort((a, b) => b.usd - a.usd);
         groups.kept.sort((a, b) => b.usd - a.usd);
+        groups.soon.sort((a, b) => b.usd - a.usd);
         dustRows = groups.dust;
-        testRows = all.filter((x) => x.chain.id === 84532 && x.addr && TEST_RECYCLE.includes(x.addr.toLowerCase()));
-        $("#x-testrecycle").classList.toggle("x-hidden", !testRows.length || usingDemo);
-        $("#x-teststat").textContent = "";
+        setStat("");
+        checkNet();
         renderList(groups);
       }
 
@@ -1057,21 +1073,19 @@
       function renderList(g) {
         $("#x-scanning").classList.add("x-hidden");
         $("#x-results").classList.remove("x-hidden");
-        $("#x-scan-title").textContent = usingDemo ? `Demo: ${g.dust.length} bits of dust` : g.dust.length ? `Found ${g.dust.length} bit${g.dust.length === 1 ? "" : "s"} of dust` : "No dust found";
+        $("#x-scan-title").textContent = g.dust.length ? `Found ${g.dust.length} bit${g.dust.length === 1 ? "" : "s"} of dust to recycle` : g.soon.length ? "No recyclable dust yet" : "No dust found";
         let i = 0;
         const off = (t, right) =>
           `<li class="x-row is-off" style="animation-delay:${i++ * 60}ms"><span class="x-box"></span><span class="x-tok">${esc(t.sym.slice(0, 2))}</span><span class="x-meta"><b><span class="x-led">${esc(t.amtText)}</span> ${esc(t.sym)}</b><small>${esc(t.sub)}</small></span><span class="x-usd x-led">${right}</span></li>`;
         let html = g.dust.map((t, k) =>
           `<li class="x-row" style="animation-delay:${i++ * 60}ms"><label style="display:contents"><input type="checkbox" data-i="${k}" checked><span class="x-box">${tickSvg}</span><span class="x-tok">${esc(t.sym.slice(0, 2))}</span><span class="x-meta"><b><span class="x-led">${esc(t.amtText)}</span> ${esc(t.sym)}</b><small>${esc(t.sub)}</small></span><span class="x-usd x-led">${usdText(t.usd)}</span></label></li>`
         ).join("");
-        if (!g.dust.length) html += `<li class="x-empty">${usingDemo ? "" : `Nothing under $${DUST_MAX_USD} across ${CHAINS.length} networks. Your wallet is spotless.`}</li>`;
+        if (!g.dust.length) html += `<li class="x-empty">${g.soon.length ? `Dusty recycles USDC on ${esc(NET.name)} today. More tokens are coming.` : `Nothing under $${DUST_MAX_USD} across ${CHAINS.length} networks. Your wallet is spotless.`}</li>`;
+        if (g.soon.length) html += `<li class="x-grouphead">Dust · recycling coming soon</li>` + g.soon.map((t) => off(t, usdText(t.usd))).join("");
         if (g.kept.length) html += `<li class="x-grouphead">Not dust · over $${DUST_MAX_USD}, left alone</li>` + g.kept.map((t) => off(t, usdText(t.usd))).join("");
         if (g.unpriced.length) html += `<li class="x-grouphead">No price found · left alone</li>` + g.unpriced.map((t) => off(t, "n/a")).join("");
-        if (g.testnet.length) html += `<li class="x-grouphead">Testnet · no real value</li>` + g.testnet.map((t) => off(t, "$0")).join("");
         if (g.failed.length) html += `<li class="x-grouphead x-grouphead--warn">Couldn't reach: ${esc(g.failed.join(", "))}</li>`;
         $("#x-list").innerHTML = html;
-        $("#x-demo").classList.toggle("x-hidden", usingDemo || g.dust.length > 0);
-        $("#x-rescan").classList.toggle("x-hidden", !usingDemo);
         updateTotals();
       }
       function selectedCents() {
@@ -1083,12 +1097,11 @@
       function updateTotals() {
         const c = selectedCents();
         $("#x-usd").textContent = "$" + (c / 100).toFixed(2);
-        $("#x-out").textContent = fmt(Math.round((c / 100) * RATE)) + " " + TOKEN_TICKER;
-        $("#x-recycle").disabled = c === 0;
+        $("#x-out").textContent = fmt(Math.floor((c / 100) * RATE * (10000 - FEE_BPS) / 10000)) + " " + TOKEN_TICKER;
+        $("#x-recycle").disabled = c === 0 || !LIVE || busy;
+        if (!LIVE) $("#x-recycle").textContent = "♻ Recycling opens soon";
       }
       $("#x-list").addEventListener("change", updateTotals);
-      $("#x-demo").addEventListener("click", () => startScan(true));
-      $("#x-rescan").addEventListener("click", () => startScan(false));
 
       /* oscilloscope: a periodic waveform (loops at x=400) and LED bar graph */
       (function scope() {
@@ -1111,59 +1124,101 @@
       })();
 
 
-      /* ---------- testnet recycle: REAL Base Sepolia transactions (testnet tokens, no real value) ---------- */
-      $("#x-testrecycle").addEventListener("click", async () => {
-        if (busy || !session.provider || !testRows.length) return;
-        busy = true; const btn = $("#x-testrecycle"); btn.disabled = true;
-        const stat = (m) => ($("#x-teststat").textContent = m);
-        try {
-          const { BrowserProvider, Contract } = await loadEthers();
-          try { await session.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x14a34" }] }); }
-          catch (e) { await session.provider.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x14a34", chainName: "Base Sepolia", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://sepolia.base.org"], blockExplorerUrls: ["https://sepolia.basescan.org"] }] }); }
-          const signer = await new BrowserProvider(session.provider).getSigner();
-          const me = await signer.getAddress();
-          const rec = new Contract(RECYCLER_ADDRESS, ["function recycle(address,uint256,uint256,uint256,bytes)"], signer);
-          let got = 0n;
-          for (const row of testRows) {
-            const cap = 10n ** BigInt(row.dec) * 999n / 100n; // stay under $10
-            const amount = row.raw < cap ? row.raw : cap;
-            stat(`Getting quote for ${row.sym}…`);
-            const r = await fetch(QUOTE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user: me, token: row.addr, amount: amount.toString() }) });
-            const q = await r.json();
-            if (!r.ok) throw new Error(q.error || "quote failed");
-            const erc = new Contract(row.addr, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
-            if ((await erc.allowance(me, RECYCLER_ADDRESS)) < amount) {
-              stat(`Approve ${row.sym} in your wallet…`);
-              await (await erc.approve(RECYCLER_ADDRESS, amount)).wait();
-            }
-            stat("Confirm recycle in your wallet…");
-            const tx = await rec.recycle(row.addr, amount, q.dustyOut, q.deadline, q.signature);
-            stat("Recycling on Base Sepolia…");
-            await tx.wait();
-            got += BigInt(q.toUser);
-          }
-          const tok = new Contract(TOKEN_ADDRESS, ["function balanceOf(address) view returns (uint256)"], signer);
-          const bal = await tok.balanceOf(me);
-          const n = (v) => fmt(Number(v / 10n ** 15n) / 1000);
-          $("#x-amount").textContent = "+" + n(got) + " $" + TOKEN_TICKER;
-          $("#x-bal").textContent = n(bal) + " (testnet)";
-          stat("Done · testnet DUSTY minted (5% recycle fee applied)");
-          $("#x-winsub").textContent = "testnet transaction · Base Sepolia · no real value";
-          $("#x-status").textContent = "Minted on testnet";
-          go(5);
-        } catch (e) {
-          stat("Error: " + ((e && (e.shortMessage || e.reason || e.message)) || "failed").slice(0, 140));
-        } finally { busy = false; btn.disabled = false; }
-      });
-      /* ---------- recycle: DEMO ONLY. No swap contract is called and no transaction is sent. ---------- */
+      /* ---------- recycle: real transactions on NET (quote → approve exact amount → recycle) ---------- */
       let busy = false;
-      $("#x-recycle").addEventListener("click", () => {
-        if (busy) return;
-        const cents = selectedCents();
-        if (!cents) return;
-        busy = true;
-        const received = Math.round((cents / 100) * RATE);
-        const rows = [...document.querySelectorAll("#x-list input:checked")].map((el) => el.closest(".x-row"));
+      function setStat(msg, kind) {
+        const el = $("#x-stat");
+        el.classList.toggle("x-hidden", !msg); el.classList.toggle("is-ok", kind === "ok"); el.classList.toggle("is-bad", kind === "bad");
+        $("#x-stattext").textContent = msg || "";
+      }
+      function niceErr(e) {
+        const code = e && (e.code ?? (e.error && e.error.code) ?? (e.info && e.info.error && e.info.error.code));
+        if (code === 4001 || code === "ACTION_REJECTED") return "You cancelled in your wallet. Nothing was sent.";
+        const m = (e && (e.shortMessage || e.reason || e.message)) || "Something went wrong.";
+        if (/insufficient funds/i.test(m)) return "Not enough ETH on " + NET.name + " for gas. Add a little ETH and try again.";
+        if (/expired/i.test(m)) return "The quote expired. Tap Recycle again for a fresh one.";
+        if (/network|fetch|Failed to fetch|busy/i.test(m)) return "Network is busy. Tap Recycle again in a moment.";
+        return m.slice(0, 160);
+      }
+      async function ensureNet(prov) {
+        const cur = parseInt(await prov.request({ method: "eth_chainId" }), 16);
+        if (cur === NET.chainId) return;
+        try { await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: NET.hex }] }); }
+        catch (e) {
+          if (e && e.code === 4001) throw e;
+          await prov.request({ method: "wallet_addEthereumChain", params: [{ chainId: NET.hex, chainName: NET.name, nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: [NET.rpc], blockExplorerUrls: [NET.scan] }] });
+        }
+        const now = parseInt(await prov.request({ method: "eth_chainId" }), 16);
+        if (now !== NET.chainId) throw new Error("Please switch your wallet to " + NET.name + ".");
+        session.chainId = now; updateVia(); checkNet();
+      }
+      function checkNet() {
+        const wrong = !!session.provider && session.chainId && session.chainId !== NET.chainId;
+        $("#x-netwarn").classList.toggle("x-hidden", !wrong);
+        $("#x-netwarn-t").textContent = `Your wallet is on ${CHAIN_NAMES[session.chainId] || "another network"}. Dusty recycles on ${NET.name}.`;
+        $("#x-switch").textContent = "Switch to " + NET.name;
+      }
+      $("#x-switch").addEventListener("click", async () => {
+        try { await ensureNet(session.provider); toast("Switched to " + NET.name); } catch (e) { showErr("#x-recycle-err", niceErr(e)); }
+      });
+      $("#x-recycle").addEventListener("click", async () => {
+        if (busy || !session.provider || !LIVE) return;
+        const picked = [...document.querySelectorAll("#x-list input:checked")];
+        const rows = picked.map((el) => dustRows[+el.dataset.i]).filter((r) => r && r.addr);
+        if (!rows.length) return;
+        busy = true; const btn = $("#x-recycle"); btn.disabled = true; showErr("#x-recycle-err", "");
+        let lastTx = "";
+        try {
+          setStat("Checking network…");
+          await ensureNet(session.provider);
+          const { BrowserProvider, Contract, getAddress } = await loadEthers();
+          const signer = await new BrowserProvider(session.provider).getSigner();
+          const me = getAddress(await signer.getAddress());
+          const recA = getAddress(RECYCLER_ADDRESS);
+          const rec = new Contract(recA, ["function recycle(address,uint256,uint256,uint256,bytes)"], signer);
+          const tok = new Contract(TOKEN_ADDRESS, ["function balanceOf(address) view returns (uint256)"], signer);
+          const before = await tok.balanceOf(me);
+          for (const row of rows) {
+            const amount = row.raw;
+            setStat(`Getting a quote for ${row.sym}…`);
+            const body = { user: me, token: row.addr, amount: amount.toString() };
+            if (NET.recyclerVersion === 2) body.recycler = recA;
+            const r = await fetch(QUOTE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+            const q = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(q.error || "quote service unavailable");
+            // L-2: never sign a quote for another chain, recycler, user, token or amount
+            if (Number(q.chainId) !== NET.chainId || getAddress(q.recycler) !== recA || getAddress(q.user) !== me ||
+                getAddress(q.token) !== getAddress(row.addr) || BigInt(q.amount) !== amount || BigInt(q.deadline) * 1000n < BigInt(Date.now()))
+              throw new Error("Quote didn't match your request. Nothing was sent.");
+            const erc = new Contract(row.addr, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
+            if ((await erc.allowance(me, recA)) < amount) {
+              setStat(`Approve ${row.sym} in your wallet (exact amount only)…`);
+              const ta = await erc.approve(recA, amount); setStat("Waiting for approval to confirm…"); await ta.wait();
+            }
+            setStat("Confirm the recycle in your wallet…");
+            const tx = await rec.recycle(row.addr, amount, q.dustyOut, q.deadline, q.signature);
+            lastTx = tx.hash;
+            setStat(`Recycling on ${NET.name}…`);
+            const rc = await tx.wait();
+            if (!rc || rc.status !== 1) throw new Error("The transaction failed on chain.");
+          }
+          const after = await tok.balanceOf(me);
+          const n = (v) => fmt(Number(v / 10n ** 15n) / 1000);
+          $("#x-amount").textContent = "+" + n(after - before) + " $" + TOKEN_TICKER;
+          $("#x-bal").textContent = n(after);
+          $("#x-status").textContent = "Received ✓";
+          $("#x-winsub").textContent = `DUSTY received in your wallet on ${NET.name}`;
+          $("#x-txlink").href = NET.scan + "/tx/" + lastTx;
+          setStat("Done ✓", "ok");
+          burst(picked.map((el) => el.closest(".x-row")), () => { const m = $("#x-winmark"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = ""; go(5); });
+        } catch (e) {
+          setStat("");
+          showErr("#x-recycle-err", niceErr(e) + (lastTx ? " · tx " + lastTx.slice(0, 10) + "…" : ""));
+        } finally { busy = false; updateTotals(); }
+      });
+      /* ---------- recycle animation (plays after the transaction confirms) ---------- */
+      function burst(rows, done) {
+        if (!rows.length || reduce) return done();
         const tx = W / 2, ty = Math.min(H * 0.32, 260);
         const parts = [];
         rows.forEach((row) => {
@@ -1210,15 +1265,10 @@
             fctx.arc(tx, ty, 10 + v * 140, 0, 6.283); fctx.stroke();
             requestAnimationFrame(ring);
           })(fs);
-          $("#x-amount").textContent = "+" + fmt(received) + " $" + TOKEN_TICKER;
-          $("#x-bal").textContent = fmt(received) + " (demo)";
-          $("#x-winsub").textContent = "demo result · no transaction was sent"; $("#x-status").textContent = "Demo · not minted";
-          const m = $("#x-winmark"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
-          busy = false;
-          go(5);
+          done();
         }
         requestAnimationFrame(frame);
-      });
+      }
 
       /* ---------- token + toast ---------- */
       let toastT;
@@ -1229,10 +1279,12 @@
       }
       $("#x-add").addEventListener("click", async () => {
         try {
-          if (!window.ethereum) { toast("Open in your wallet app to add $" + TOKEN_TICKER); return; }
-          try { await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x14a34" }] }); } catch (e) {}
-          await ethereum.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: TOKEN_ADDRESS, symbol: TOKEN_TICKER, decimals: 18, image: new URL("icon-192.png", location.href).href } } });
-          toast("$" + TOKEN_TICKER + " added (Base Sepolia testnet)");
+          if (!session.provider && !window.ethereum) { toast("Open in your wallet app to add $" + TOKEN_TICKER); return; }
+          const prov = session.provider || window.ethereum;
+          if (!LIVE) { toast("$" + TOKEN_TICKER + " address is published at launch"); return; }
+          try { await ensureNet(prov); } catch (e) {}
+          await prov.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: TOKEN_ADDRESS, symbol: TOKEN_TICKER, decimals: 18, image: new URL("icon-192.png", location.href).href } } });
+          toast("$" + TOKEN_TICKER + " added on " + NET.name);
         } catch (e) { toast("Couldn't add token"); }
       });
 
@@ -1273,6 +1325,8 @@
         addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
       }
 
+      $("#x-netname").textContent = NET.name;
+      if (IS_TEST) { $("#x-netbadge").textContent = NET.name + " test network"; $("#x-netbadge").classList.remove("x-hidden"); }
       go(1);
     </script>
   </body>
