@@ -14,7 +14,7 @@ label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-
 <body><main>
 <span class="badge">BASE MAINNET · REAL ETH GAS</span>
 <h1><img src="__LOGO_URL__" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Deploy Dusty on Base</h1>
-<small>You sign every step in your own MetaMask. Nothing is sent without your tap. 8 confirmations (5 if you set the partner allocation to 0). Keep a little ETH on Base for gas (around $1–3 total). Contracts are unaudited; use at your own risk. Not financial advice.</small>
+<small>You sign every step in your own MetaMask. Nothing is sent without your tap. 8 confirmations (5 if you set the Dusty Rewards Reserve amount to 0). Keep a little ETH on Base for gas (around $1–3 total). Contracts are unaudited; use at your own risk. Not financial advice.</small>
 
 <div class="step" id="s1"><b>1. Connect MetaMask on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
 
@@ -31,21 +31,21 @@ label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-
 <label><small>Recycler mint budget, whole DUSTY</small><input id="allow" value="100000000" inputmode="numeric"></label>
 <label><small>Dust token to allow (USDC on Base)</small><input id="usdc" value="__USDC__" autocomplete="off"></label>
 <label class="chk"><input type="checkbox" id="ok1"><small>Signer address matches the one Hark gave me: <b>__SIGNER__</b></small></label>
-<div style="margin-top:12px;border-top:1px solid #1f3a2c;padding-top:8px"><small><b>Partner allocation, publicly visible</b> (set the amount to 0 to skip)</small><br>
+<div style="margin-top:12px;border-top:1px solid #1f3a2c;padding-top:8px"><small><b>Dusty Rewards Reserve, publicly visible</b> (set the amount to 0 to skip)</small><br>
 <small>With an amount above 0, the page gives your wallet a one-time mint budget, mints exactly that to the reserve address, then removes your mint permission (3 extra confirmations). Anyone can see this mint on Basescan.</small>
-<label><small>Partner allocation amount, whole DUSTY (0 = off)</small><input id="resAmt" value="5000000" inputmode="numeric"></label>
-<label><small>Reserve address (DUSTY Partner Allocation Wallet)</small><input id="resTo" value="__RESERVE__" autocomplete="off"></label></div>
+<label><small>Dusty Rewards Reserve amount, whole DUSTY (0 = off)</small><input id="resAmt" value="5000000" inputmode="numeric"></label>
+<label><small>Reserve address (Dusty Rewards Reserve)</small><input id="resTo" value="__RESERVE__" autocomplete="off"></label></div>
 <label class="chk"><input type="checkbox" id="ok3"><small>Both payout wallets are right. Fees split 50/50 and this can never be changed later.</small></label>
 <label class="chk"><input type="checkbox" id="ok2"><small>I understand this deploys real contracts on Base mainnet, they are unaudited, and I pay the gas.</small></label>
 <div class="out" id="rolesOut"></div></div>
 
-<div class="step" id="s3"><b>3. Deploy everything</b><small><br>Runs 8 transactions in order (5 if the partner allocation is 0). Approve each one in MetaMask. If something stops, tap the button again: it resumes where it left off.</small>
+<div class="step" id="s3"><b>3. Deploy everything</b><small><br>Runs 8 transactions in order (5 if the Dusty Rewards Reserve amount is 0). Approve each one in MetaMask. If something stops, tap the button again: it resumes where it left off.</small>
 <div class="out" id="plan">a. Create the 50/50 fee split (0xSplits)
 b. Deploy DUSTY token
 c. Deploy Recycler (treasury = the split)
 d. token.setMinter(recycler, true, budget)
 e. recycler.setAllowedToken(USDC, true)
-f. Partner allocation: setMinter(you, amount) → mint to partner wallet → revoke (skipped at 0)
+f. Dusty Rewards Reserve: setMinter(you, amount) → mint to the reserve wallet → revoke (skipped at 0)
 g. Read everything back and verify</div>
 <button id="bGo">Start deploy</button><div class="out" id="log"></div></div>
 
@@ -111,7 +111,7 @@ async function roles(quiet){
  if(r.delay>2592000n)throw new Error("delay over 30 days, check it");
  if(r.resAmt>0n&&r.resTo===r.signer)throw new Error("reserve address must not be the quote signer");
  const w=[];if(r.admin!==me)w.push("admin is not the connected wallet: steps d, e and f must be signed by the admin, so they will fail here");
- if(r.resAmt>0n)w.push("partner allocation (publicly visible): "+$("resAmt").value+" DUSTY will be minted to "+r.resTo);
+ if(r.resAmt>0n)w.push("Dusty Rewards Reserve (publicly visible): "+$("resAmt").value+" DUSTY will be minted to "+r.resTo);
  $("rolesOut").innerHTML=w.map(x=>'<span class="warn">⚠ '+x+'</span>').join("<br>");return r}
 const save=(k,v)=>localStorage.setItem(LS+k,v),load=k=>localStorage.getItem(LS+k);
 async function code(a){return (await signer.provider.getCode(a))!=="0x"}
@@ -153,8 +153,8 @@ $("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true
  // e. usdc
  if(await c.allowedToken(r.usdc)){say("e. USDC already allowed ✓")}else{
   say("e. Allowing USDC… confirm in MetaMask");const tx=await c.setAllowedToken(r.usdc,true);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("e. USDC allowed ✓")}
- // f. optional partnership reserve (off at 0)
- if(r.resAmt===0n){say("f. Partner allocation: off (amount 0), skipped")}else{
+ // f. optional Dusty Rewards Reserve (off at 0)
+ if(r.resAmt===0n){say("f. Dusty Rewards Reserve: off (amount 0), skipped")}else{
   const rs=JSON.parse(load("resv")||"null");
   if(rs&&rs.done&&rs.to===r.resTo&&rs.amt===r.resAmt.toString()){say("f. Reserve already minted ✓")}else{
    if(rs&&rs.to&&(rs.to!==r.resTo||rs.amt!==r.resAmt.toString()))throw new Error("a different reserve was started on this device ("+rs.amt.slice(0,-18)+" DUSTY to "+rs.to+"); tap Start over or restore those values");
@@ -164,7 +164,7 @@ $("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true
      say("f1. One-time mint budget for your wallet ("+$("resAmt").value+" DUSTY)… confirm in MetaMask");
      const tx=await t.setMinter(me,true,r.resAmt);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait()}
     say("f2. Minting "+$("resAmt").value+" DUSTY to the reserve… confirm in MetaMask");
-    const tx=await t.mintReward(r.resTo,r.resAmt,ethers.id("DUSTY_PARTNERSHIP_RESERVE"));say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();
+    const tx=await t.mintReward(r.resTo,r.resAmt,ethers.id("DUSTY_PARTNERSHIP_RESERVE")); // mint ref kept as used on chain at launch (2026-11-09)say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();
     minted=true;save("resv",JSON.stringify({to:r.resTo,amt:r.resAmt.toString(),minted:true}))}
    if(await t.isMinter(me)){say("f3. Removing your wallet's mint permission… confirm in MetaMask");
     const tx=await t.setMinter(me,false,0n);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait()}

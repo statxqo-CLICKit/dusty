@@ -7,6 +7,7 @@ window.DUSTY_DISCLAIMER = "Not financial advice. DUSTY is a utility reward with 
       el.textContent = t.slice(0, i);
       var a = document.createElement("a"); a.href = "terms.html"; a.textContent = "Terms"; el.appendChild(a);
       el.appendChild(document.createTextNode(t.slice(i + 5)));
+      if (!/transparency\.html$/.test(location.pathname)) { el.appendChild(document.createTextNode(" · ")); var b = document.createElement("a"); b.href = "transparency.html"; b.textContent = "Transparency"; el.appendChild(b); }
     });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill); else fill();

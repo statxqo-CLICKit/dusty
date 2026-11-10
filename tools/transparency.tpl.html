@@ -1,0 +1,121 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Transparency</title>
+<meta name="description" content="Dusty (DUSTY) on Base: supply, the Dusty Rewards Reserve, the reserve lock, minting limits, fee split and contract addresses, read live from the chain.">
+<link rel="icon" href="favicon-32.png">
+<style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:640px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:26px;margin:8px 0}h2{color:#39ff88;font-size:18px;margin:0 0 6px}
+.card{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:14px;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:6px 4px;border-top:1px solid #16261f;vertical-align:top}td:first-child{color:#8ab;width:44%}
+td:last-child{word-break:break-all}a{color:#39ff88}small{color:#8ab}.ok{color:#39ff88}.bad{color:#ff8a8a}.warn{color:#ffcf5a}.mono{font-family:monospace;font-size:13px}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#16261f;margin:8px 0}.bar i{display:block;height:100%}
+.leg span{display:inline-block;margin-right:12px;font-size:13px}.leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
+<script src="disclaimer.js" defer></script></head>
+<body><main>
+<a href="./"><img src="__LOGO_URL__" alt="Dusty" width="40" height="40" style="border-radius:10px"></a>
+<h1>Dusty transparency</h1>
+<small>Every number on this page is read live from Base mainnet (chain 8453) when you open it. Nothing here is typed in by hand. Check any line yourself with the Basescan links. <span id="stamp"></span></small>
+
+<div class="card"><h2>Supply</h2>
+<div class="bar" id="bar"></div><div class="leg" id="leg"></div>
+<table id="supply"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Reserve lock</h2>
+<small>4,500,000 DUSTY from the Dusty Rewards Reserve are held by a lock contract with no owner, no admin, no upgrade and no early withdraw. After the unlock time, the lock can only send them back to the Reserve wallet.</small>
+<table id="lock"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Dusty Rewards Reserve</h2>
+<small>Stan's wallet for user rewards and listing costs. Its unlocked balance is shown live. Every transfer out is public on Basescan.</small>
+<table id="reserve"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Minting</h2>
+<small>New DUSTY can only be minted by addresses holding the minter role. Today that is only the Recycler, and only for recycled dust, within the limits below.</small>
+<table id="mint"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Fees and treasury</h2>
+<table id="fees"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Liquidity pool</h2>
+<table id="pool"><tr><td>Loading…</td><td></td></tr></table></div>
+
+<div class="card"><h2>Admin powers (stated plainly)</h2>
+<table id="admin"><tr><td>Loading…</td><td></td></tr></table>
+<small>The admin can: change the Recycler's per-quote and daily limits (never above the hard ceilings shown above), change the fee (never above 10%), change the quote signer and allowed dust tokens, pause or unpause, and grant or remove minters on the token. The admin cannot touch the reserve lock. Any admin change is an on-chain transaction anyone can see; handing the admin role to someone else takes a 2-day public delay.</small></div>
+
+<div class="card"><h2>Contracts</h2><table id="contracts"></table></div>
+
+<p style="font-size:13px;color:#8fb09b;text-align:center">Contracts are unaudited. This page lists facts only; it is not an offer or a solicitation. <span data-disclaimer></span></p>
+<footer><a href="./">Open the app</a> · <a href="welcome.html">Welcome</a> · <a href="terms.html">Terms</a></footer>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const SCAN="https://basescan.org";
+const DUSTY="__DUSTY__",REC="__RECYCLER__",SPLIT="__SPLIT__",RESERVE="__RESERVE__",STAN="__STAN__",ANDREA="__ANDREA__";
+const USDC="__USDC__",SPLIT_MAIN="__SPLIT_MAIN__",V3F="__V3_FACTORY__",V3NPM="__V3_NPM__",FROM=__DEPLOY_BLOCK__;
+const LRT="__LOCK_RT__",LIMM=__LOCK_IMM__,UNLOCK=__UNLOCK__n,LOCK_AMT=ethers.parseUnits("__LOCK_AMT__",18);
+const RPCS=["https://mainnet.base.org","https://base-rpc.publicnode.com","https://base.llamarpc.com"];
+const $=id=>document.getElementById(id);
+const short=a=>a.slice(0,8)+"…"+a.slice(-6);
+const link=(a,t,l)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${l||short(a)}</a>`;
+const tokLink=(holder,l)=>`<a target="_blank" rel="noopener" href="${SCAN}/token/${DUSTY}?a=${holder}">${l}</a>`;
+const fD=v=>Number(ethers.formatUnits(v,18)).toLocaleString("en-US",{maximumFractionDigits:2});
+const pct=(v,s)=>s>0n?(Number(v*1000000n/s)/10000).toFixed(2)+"%":"0%";
+const yes=(b,t,f)=>b?`<span class="ok">✓ ${t}</span>`:`<span class="bad">✗ ${f||t}</span>`;
+const rows=(id,r)=>{$(id).innerHTML=r.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("")};
+const when=new Date(Number(UNLOCK)*1000);
+const dateStr=when.toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"long",timeStyle:"short"})+" Pacific ("+when.toISOString().slice(0,16).replace("T"," ")+" UTC)";
+function expRuntime(){const b=ethers.getBytes(LRT);const put=(s,h)=>{const w=ethers.getBytes(ethers.zeroPadValue(h,32));for(const x of s)b.set(w,x)};
+ put(LIMM.token,DUSTY);put(LIMM.beneficiary,RESERVE);put(LIMM.releaseTime,ethers.toBeHex(UNLOCK));return ethers.hexlify(b)}
+const EXP=ethers.keccak256(expRuntime());
+async function provider(){for(const u of RPCS){try{const p=new ethers.JsonRpcProvider(u,8453,{staticNetwork:true});await p.getBlockNumber();return p}catch(e){}}throw new Error("no Base RPC reachable")}
+const TABI=["function totalSupply() view returns (uint256)","function cap() view returns (uint256)","function balanceOf(address) view returns (uint256)","function owner() view returns (address)","function defaultAdminDelay() view returns (uint48)",
+ "function hasRole(bytes32,address) view returns (bool)","function minterAllowance(address) view returns (uint256)","function paused() view returns (bool)","function MINTER_ROLE() view returns (bytes32)","function symbol() view returns (string)"];
+const RABI=["function maxDustyPerQuote() view returns (uint256)","function dailyMintCap() view returns (uint256)","function dailyMintRemaining() view returns (uint256)","function MAX_PER_QUOTE_CEILING() view returns (uint256)","function MAX_DAILY_CAP_CEILING() view returns (uint256)",
+ "function feeBps() view returns (uint16)","function MAX_FEE_BPS() view returns (uint16)","function treasury() view returns (address)","function paused() view returns (bool)","function owner() view returns (address)","function MAX_QUOTE_TTL() view returns (uint256)"];
+const LABI=["function token() view returns (address)","function beneficiary() view returns (address)","function releaseTime() view returns (uint256)"];
+const SABI=["function getHash(address) view returns (bytes32)","function getController(address) view returns (address)"];
+async function findLock(p){const n=await p.getTransactionCount(RESERVE,"latest");
+ for(let i=0;i<Math.min(n,64);i++){const a=ethers.getCreateAddress({from:RESERVE,nonce:i});const c=await p.getCode(a);if(c!=="0x"&&ethers.keccak256(c)===EXP)return a}return null}
+async function minters(p,t,role){ // current MINTER_ROLE holders from RoleGranted/RoleRevoked events since deploy
+ const G=ethers.id("RoleGranted(bytes32,address,address)"),R=ethers.id("RoleRevoked(bytes32,address,address)");
+ let logs=null;for(const u of [...RPCS.slice(1),RPCS[0]]){try{logs=await new ethers.JsonRpcProvider(u,8453,{staticNetwork:true}).getLogs({address:DUSTY,fromBlock:FROM,toBlock:"latest",topics:[[G,R],role]});break}catch(e){}}
+ if(!logs)throw new Error("logs unavailable");
+ const set=new Set();for(const l of logs){const a=ethers.getAddress("0x"+l.topics[2].slice(26));l.topics[0]===G?set.add(a):set.delete(a)}
+ const out=[];for(const a of set)if(await t.hasRole(role,a))out.push(a);return out}
+async function run(){
+ const p=await provider();const blk=await p.getBlock("latest");
+ $("stamp").textContent="Read at block "+blk.number.toLocaleString("en-US")+" ("+new Date(blk.timestamp*1000).toLocaleString()+").";
+ const t=new ethers.Contract(DUSTY,TABI,p),r=new ethers.Contract(REC,RABI,p);
+ const lock=await findLock(p);
+ const [sup,cap,resBal,lockBal,sym]=await Promise.all([t.totalSupply(),t.cap(),t.balanceOf(RESERVE),lock?t.balanceOf(lock):0n,t.symbol()]);
+ const other=sup-resBal-lockBal;
+ $("bar").innerHTML=`<i style="width:${pct(lockBal,sup)};background:#2f7bff"></i><i style="width:${pct(resBal,sup)};background:#39ff88"></i><i style="width:${pct(other,sup)};background:#ffcf5a"></i>`;
+ $("leg").innerHTML=`<span><b style="background:#2f7bff"></b>Locked</span><span><b style="background:#39ff88"></b>Reserve (unlocked)</span><span><b style="background:#ffcf5a"></b>All other wallets</span>`;
+ rows("supply",[["Token",link(DUSTY,"token",sym+" · "+short(DUSTY))],["Total supply now",fD(sup)+" DUSTY"],["Hard cap (can never be exceeded)",fD(cap)+" DUSTY"],
+  ["Locked in reserve lock",fD(lockBal)+" ("+pct(lockBal,sup)+")"],["Dusty Rewards Reserve, unlocked",fD(resBal)+" ("+pct(resBal,sup)+")"],["All other wallets (rewards earned, pool)",fD(other)+" ("+pct(other,sup)+")"]]);
+ if(lock){const L=new ethers.Contract(lock,LABI,p);const [tk,ben,rt]=await Promise.all([L.token(),L.beneficiary(),L.releaseTime()]);
+  const left=Number(rt)-blk.timestamp,days=Math.max(0,Math.ceil(left/86400));
+  rows("lock",[["Lock contract",link(lock)],["Amount locked",tokLink(lock,fD(lockBal)+" DUSTY")+(lockBal>=LOCK_AMT?' <span class="ok">✓</span>':"")],["Unlocks",dateStr+"<br><small>unix "+rt+(left>0?" · about "+days+" days from now":" · unlock time reached")+"</small>"],
+   ["Can only release to",link(ben)+" (Dusty Rewards Reserve) "+yes(ethers.getAddress(ben)===ethers.getAddress(RESERVE),"")],["Token",link(tk)+" "+yes(ethers.getAddress(tk)===ethers.getAddress(DUSTY),"")],
+   ["Code check",yes(true,"matches the published DustyReserveLock source (no owner, no early withdraw)")]])}
+ else rows("lock",[["Status",'<span class="warn">Being set up now. This section fills in by itself once the lock contract is deployed from the Reserve wallet.</span>'],["Planned amount","4,500,000 DUSTY"],["Planned unlock",dateStr+"<br><small>unix "+UNLOCK+"</small>"],["Releases only to",link(RESERVE)+" (Dusty Rewards Reserve)"]]);
+ rows("reserve",[["Wallet",link(RESERVE)+" "+tokLink(RESERVE,"(DUSTY transfers)")],["Unlocked balance",fD(resBal)+" DUSTY"],["Purpose","User rewards and listing costs (planned: 500,000 DUSTY unlocked)"]]);
+ const role=await t.MINTER_ROLE();
+ const [isRec,isStan,isRes,allow,mq,dc,dr,mqC,dcC,tp,rp]=await Promise.all([t.hasRole(role,REC),t.hasRole(role,STAN),t.hasRole(role,RESERVE),t.minterAllowance(REC),r.maxDustyPerQuote(),r.dailyMintCap(),r.dailyMintRemaining(),r.MAX_PER_QUOTE_CEILING(),r.MAX_DAILY_CAP_CEILING(),t.paused(),r.paused()]);
+ let mlist;try{const m=await minters(p,t,role);mlist=m.length?m.map(a=>link(a)+(ethers.getAddress(a)===ethers.getAddress(REC)?" (Recycler)":"")).join("<br>"):"none"}catch(e){mlist='<small>event lookup unavailable on this RPC; direct checks below</small>'}
+ rows("mint",[["Current minters (from on-chain role events)",mlist],["Recycler is a minter",yes(isRec,"yes","no")],["Stan's wallet can mint",isStan?'<span class="bad">yes</span>':'<span class="ok">✓ no</span>'],["Reserve wallet can mint",isRes?'<span class="bad">yes</span>':'<span class="ok">✓ no</span>'],
+  ["Max DUSTY per recycle quote",fD(mq)+" <small>(hard ceiling "+fD(mqC)+")</small>"],["Max DUSTY minted per 24h",fD(dc)+" <small>(hard ceiling "+fD(dcC)+")</small>"],["Left in the current 24h window",fD(dr)],["Recycler's remaining mint budget",fD(allow)],["Minting paused",tp||rp?'<span class="warn">yes</span>':"no"]]);
+ const sm=new ethers.Contract(SPLIT_MAIN,SABI,p);const acc=BigInt(STAN)<BigInt(ANDREA)?[STAN,ANDREA]:[ANDREA,STAN];
+ const h=ethers.keccak256(ethers.solidityPacked(["address[]","uint32[]","uint32"],[acc,[500000,500000],0]));
+ const [fee,mf,tr,sh,sc]=await Promise.all([r.feeBps(),r.MAX_FEE_BPS(),r.treasury(),sm.getHash(SPLIT),sm.getController(SPLIT)]);
+ rows("fees",[["Recycle fee",(Number(fee)/100)+"% <small>(contract maximum "+(Number(mf)/100)+"%)</small>"],["Fees go to",link(tr)+" "+yes(ethers.getAddress(tr)===ethers.getAddress(SPLIT),"0xSplits split")],
+  ["Split",yes(sh===h,"50% "+short(STAN)+" (Stan) · 50% "+short(ANDREA)+" (Andrea)","split recipients do not match")],["Split can be changed",sc===ethers.ZeroAddress?'<span class="ok">✓ never (no controller)</span>':'<span class="bad">yes, controller '+short(sc)+'</span>']]);
+ const f=new ethers.Contract(V3F,["function getPool(address,address,uint24) view returns (address)"],p);const pool=await f.getPool(DUSTY,USDC,10000);
+ rows("pool",pool===ethers.ZeroAddress?[["DUSTY/USDC Uniswap v3 (1%)","Not created yet"],["LP position will be held by",link(STAN)+" (Stan's wallet)"]]:
+  [["DUSTY/USDC Uniswap v3 (1%)",link(pool)],["Pool balances",tokLink(pool,"DUSTY in pool")],["LP position NFT holder",link(STAN)+" (Stan's wallet) · <a target=_blank rel=noopener href=\""+SCAN+"/token/"+V3NPM+"?a="+STAN+"\">positions</a>"]]);
+ const [ta,ra,dl]=await Promise.all([t.owner(),r.owner(),t.defaultAdminDelay()]);
+ rows("admin",[["Token admin",link(ta)+(ethers.getAddress(ta)===ethers.getAddress(STAN)?" (Stan)":"")],["Recycler admin",link(ra)+(ethers.getAddress(ra)===ethers.getAddress(STAN)?" (Stan)":"")],["Admin hand-over delay",(Number(dl)/86400)+" days"]]);
+ rows("contracts",[["DUSTY token",link(DUSTY,"token",DUSTY)],["Recycler",link(REC,"address",REC)],["Fee split (0xSplits)",link(SPLIT,"address",SPLIT)],["Reserve lock",lock?link(lock,"address",lock):"not deployed yet"],["Dusty Rewards Reserve",link(RESERVE,"address",RESERVE)],["Admin (Stan)",link(STAN,"address",STAN)]]);
+}
+run().catch(e=>{$("stamp").innerHTML='<span class="bad">Could not read the chain right now ('+(e.shortMessage||e.message)+'). Reload to try again.</span>'});
+</script></body></html>

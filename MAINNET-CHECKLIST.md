@@ -9,7 +9,7 @@ Nothing below has been done on mainnet yet. Stan signs every on-chain step in Me
 | Treasury | 0xSplits v1 immutable 50/50 split `0x571E955471E93251d2a708Ea107eb86919639710` (Andrea `0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2` 50% + Stan `0x9b8E…c7Fd` 50%, no controller). Created by the deploy page, step a. |
 | 0xSplits SplitMain (Base) | `0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE` (SplitWallet impl `0xD94c0CE4f8eEfA4Ebf44bf6665688EdEEf213B33`), from https://docs.splits.org/core/split, code checked on mainnet.base.org |
 | Multicall3 (Base) | `0xcA11bde05977b3631167028862bE2a173976CA11` (one-tap Distribute on treasury.html) |
-| Partner allocation (publicly visible) | 5,000,000 DUSTY → `0x4F9eb9a29c174Ec2a087545275Bf1e9070ef108C` (DUSTY Partner Allocation Wallet). Editable on the deploy page; 0 skips it. |
+| Dusty Rewards Reserve (publicly visible) | 5,000,000 DUSTY → `0x4F9eb9a29c174Ec2a087545275Bf1e9070ef108C` (Dusty Rewards Reserve). Editable on the deploy page; 0 skips it. |
 | Quote signer (fresh mainnet key) | `0xE3ed6685AcB201EB40370d181766424C00F2515f` (key file only in Hark workspace `secrets/mainnet-signer.key`, chmod 600) |
 | USDC (Circle, Base) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Fee | 500 bps (5%) |
@@ -28,7 +28,7 @@ Uniswap addresses from https://docs.uniswap.org/contracts/v3/reference/deploymen
 Approval counts Stan signs in MetaMask:
 | Page | Approvals |
 |---|---|
-| deploy-mainnet.html | **8**: split, token, recycler, setMinter(recycler), allow USDC, setMinter(self, 5M), mint 5M to partner wallet, revoke self (5 if partner amount is 0) |
+| deploy-mainnet.html | **8**: split, token, recycler, setMinter(recycler), allow USDC, setMinter(self, 5M), mint 5M to the Dusty Rewards Reserve, revoke self (5 if the Dusty Rewards Reserve amount is 0) |
 | seed-pool.html | up to **8**: setMinter(self, seed), mint seed, revoke, approve DUSTY, approve USDC, create pool, add liquidity, price history |
 | treasury.html | **1** per payout (Distribute fees → both wallets paid 50/50) |
 | **Total to launch** | **16** (+1 each time fees are paid out) |
@@ -37,8 +37,8 @@ Approval counts Stan signs in MetaMask:
 1. [ ] Stan has a little ETH on **Base** in `0x9b8E…c7fd` (≈ $1–3 covers the 8 deploy txs + up to 8 pool txs).
 2. [ ] Stan opens **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/deploy-mainnet.html**
        (desktop: https://statxqo-clickit.github.io/dusty/deploy-mainnet.html).
-3. [ ] Connect → switches/adds Base → check the settings (payout wallets, partner allocation 5,000,000 → 0x4F9e…108C) → tick all three boxes → **Start deploy** → approve 8 transactions.
-4. [ ] All 16 read-back checks show ✓ (split exists + immutable, treasury = split, partner wallet holds the allocation, your wallet cannot mint) → **Copy config for Hark** → send to Hark.
+3. [ ] Connect → switches/adds Base → check the settings (payout wallets, Dusty Rewards Reserve 5,000,000 → 0x4F9e…108C) → tick all three boxes → **Start deploy** → approve 8 transactions.
+4. [ ] All 16 read-back checks show ✓ (split exists + immutable, treasury = split, Dusty Rewards Reserve holds its amount, your wallet cannot mint) → **Copy config for Hark** → send to Hark.
 5. [ ] **Seed the pool.** Stan needs the USDC to add (default 15) + a little ETH on Base in the admin wallet.
        Opens **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/seed-pool.html**
        (desktop: https://statxqo-clickit.github.io/dusty/seed-pool.html). Same device as the deploy page fills the token address.
@@ -79,3 +79,12 @@ Approval counts Stan signs in MetaMask:
 ## Open risks (unchanged)
 Unaudited contracts; hot quote-signer key (bounded by caps); one wallet for admin/guardian/treasury until a Safe; ethers from CDN without SRI (M-4);
 no Worker rate limit until the dashboard rule (M-2); remove raw.githack.com from the testnet Worker CORS list.
+
+## Reserve lock (approved by Stan 2026-11-09)
+
+- Contract: `contracts/DustyReserveLock.sol` (immutable, ownerless; releases only to the Reserve after the unlock time). Tests: `test/DustyReserveLock.t.sol` incl. Base fork test.
+- Amount: 4,500,000 DUSTY locked; 500,000 DUSTY stay unlocked in the Dusty Rewards Reserve (rewards, listing costs).
+- Unlock: `1825825200` = 2027-11-09 21:40 PST = 2027-11-10 05:40 UTC.
+- [ ] Open https://statxqo-clickit.github.io/dusty/lock-reserve.html in MetaMask's browser and follow the one button (gas top-up from 0x9b8E → switch to Reserve → deploy lock → send 4.5M → read-back).
+- [ ] Verify on Basescan: `ETHERSCAN_API_KEY=... tools/basescan-verify-lock.sh <LOCK_ADDRESS>`.
+- Public page: https://statxqo-clickit.github.io/dusty/transparency.html (live from chain, finds the lock by itself).
