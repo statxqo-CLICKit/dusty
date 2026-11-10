@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Deploy on Base mainnet</title><meta name="robots" content="noindex">
+<link rel="icon" href="favicon-32.png">
+<style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:520px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+.step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:14px;margin:12px 0}
+.step b{color:#39ff88}.step.done{border-color:#39ff88}.step.run{border-color:#ffcf5a}.step.bad{border-color:#ff6b6b}
+button{width:100%;min-height:48px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
+button.sec{background:#1f3a2c;color:#e8fff0}button:disabled{background:#2a3d33;color:#7a9}
+input{width:100%;min-height:44px;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:14px monospace;margin-top:6px}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}.err{color:#ff8a8a}
+label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-start;margin-top:10px}.chk input{width:24px;min-height:24px;margin:2px 0 0}
+.badge{display:inline-block;background:#3a1010;color:#ffb3b3;border:1px solid #ff6b6b;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}</style></head>
+<body><main>
+<span class="badge">BASE MAINNET · REAL ETH GAS</span>
+<h1>Deploy Dusty on Base</h1>
+<small>You sign every step in your own MetaMask. Nothing is sent without your tap. About 5 confirmations. Keep a little ETH on Base for gas (around $1–3 total). Contracts are unaudited; use at your own risk. Not financial advice.</small>
+
+<div class="step" id="s1"><b>1. Connect MetaMask on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
+
+<div class="step" id="s2"><b>2. Check the settings</b><small><br>Prefilled for you. Only change these if you know why.</small>
+<label><small>Admin / owner (later: move to a Safe)</small><input id="admin" placeholder="connected wallet" autocomplete="off"></label>
+<label><small>Guardian (can pause only)</small><input id="guardian" placeholder="connected wallet" autocomplete="off"></label>
+<label><small>Treasury (receives the recycled dust)</small><input id="treas" placeholder="connected wallet" autocomplete="off"></label>
+<label><small>Quote signer (Dusty quote service, mainnet key)</small><input id="signer" value="__SIGNER__" autocomplete="off"></label>
+<label><small>Fee in basis points (500 = 5%)</small><input id="fee" value="500" inputmode="numeric"></label>
+<label><small>Admin transfer delay, seconds (172800 = 2 days)</small><input id="delay" value="172800" inputmode="numeric"></label>
+<label><small>Recycler mint budget, whole DUSTY</small><input id="allow" value="100000000" inputmode="numeric"></label>
+<label><small>Dust token to allow (USDC on Base)</small><input id="usdc" value="__USDC__" autocomplete="off"></label>
+<label class="chk"><input type="checkbox" id="ok1"><small>Signer address matches the one Hark gave me: <b>__SIGNER__</b></small></label>
+<label class="chk"><input type="checkbox" id="ok2"><small>I understand this deploys real contracts on Base mainnet, they are unaudited, and I pay the gas.</small></label>
+<div class="out" id="rolesOut"></div></div>
+
+<div class="step" id="s3"><b>3. Deploy everything</b><small><br>Runs 4 transactions in order. Approve each one in MetaMask. If something stops, tap the button again: it resumes where it left off.</small>
+<div class="out" id="plan">a. Deploy DUSTY token
+b. Deploy Recycler
+c. token.setMinter(recycler, true, budget)
+d. recycler.setAllowedToken(USDC, true)
+e. Read everything back and verify</div>
+<button id="bGo">Start deploy</button><div class="out" id="log"></div></div>
+
+<div class="step" id="s4"><b>4. Result</b><div class="out" id="cout">Not done yet.</div><button id="bCopy" class="sec" disabled>Copy config for Hark</button>
+<button id="bReset" class="sec">Start over (forget saved addresses)</button></div>
+<small>Later admin tasks: <a href="recycler.html">admin console</a> · <a href="terms.html">Terms</a></small>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const TABI=__TOKEN_ABI__;
+const TBC="__TOKEN_BC__";
+const RABI=__REC_ABI__;
+const RBC="__REC_BC__";
+const BC_SHA="__BC_SHA__";
+const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org",EXPECTED_SIGNER="__SIGNER__";
+const LS="dmain_";let signer,me;const $=id=>document.getElementById(id);
+const say=(t,cls)=>{const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=t;$("log").appendChild(d)};
+const emsg=e=>(e&&(e.shortMessage||e.reason||e.info?.error?.message||e.message))||String(e);
+const A=v=>ethers.getAddress(String(v).trim());
+const link=(a,t)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${a.slice(0,10)}…${a.slice(-6)}</a>`;
+const st=(id,c)=>{$(id).className="step "+(c||"")};
+// integrity: bytecode must match the build that was tested locally
+(async()=>{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(TBC+RBC));const x=[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+ if(x!==BC_SHA){$("bGo").disabled=true;say("Bytecode check failed. Do not deploy. Tell Hark.","err")}})();
+async function connect(){try{
+ if(!window.ethereum){location.href="https://metamask.app.link/dapp/"+location.host+location.pathname;return}
+ await ethereum.request({method:"eth_requestAccounts"});
+ try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
+  if(e.code===4902||/unrecognized|not added|Unrecognized/i.test(emsg(e)))await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://mainnet.base.org"],blockExplorerUrls:[SCAN]}]});else throw e}
+ const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
+ if(n.chainId!==CHAIN){$("who").textContent="Your wallet is not on Base. Switch to Base in MetaMask, then tap Connect again.";signer=null;st("s1","bad");return}
+ signer=await p.getSigner();me=await signer.getAddress();const bal=await p.getBalance(me);
+ for(const k of ["admin","guardian","treas"]) if(!$(k).value) $(k).value=me;
+ $("who").innerHTML=link(me)+"  ·  "+Number(ethers.formatEther(bal)).toFixed(5)+" ETH on Base"+(bal<ethers.parseEther("0.0003")?'<br><span class="warn">⚠ Low ETH for gas. Add a little ETH on Base first.</span>':"");
+ st("s1","done");
+}catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
+ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
+ethereum?.on?.("accountsChanged",()=>{signer=null;$("who").textContent="Account changed. Tap Connect again."});
+async function need(){if(!signer)await connect();if(!signer)throw new Error("connect your wallet on Base first (step 1)");
+ const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base mainnet (8453)")}
+function roles(){
+ const r={admin:A($("admin").value||me),guardian:A($("guardian").value||me),treas:A($("treas").value||me),signer:A($("signer").value),usdc:A($("usdc").value),
+  fee:Number($("fee").value),delay:BigInt(($("delay").value||"0").trim()),allow:ethers.parseUnits(($("allow").value||"0").trim(),18)};
+ if(!$("ok1").checked||!$("ok2").checked)throw new Error("tick both boxes in step 2");
+ if(r.signer!==A(EXPECTED_SIGNER))throw new Error("quote signer differs from the one Hark generated ("+EXPECTED_SIGNER+")");
+ if([r.admin,r.guardian,r.treas].includes(r.signer))throw new Error("quote signer must differ from admin, guardian and treasury");
+ if(!(Number.isInteger(r.fee)&&r.fee>=0&&r.fee<=1000))throw new Error("fee must be 0-1000");
+ if(r.delay>2592000n)throw new Error("delay over 30 days, check it");
+ const w=[];if(r.admin!==me)w.push("admin is not the connected wallet: steps c and d must be signed by the admin, so they will fail here");
+ if(r.treas===r.admin)w.push("treasury = admin (fine to start; move to a separate wallet or Safe later)");
+ $("rolesOut").innerHTML=w.map(x=>'<span class="warn">⚠ '+x+'</span>').join("<br>");return r}
+const save=(k,v)=>localStorage.setItem(LS+k,v),load=k=>localStorage.getItem(LS+k);
+async function code(a){return (await signer.provider.getCode(a))!=="0x"}
+$("bConnect").onclick=connect;
+$("bReset").onclick=()=>{if(confirm("Forget saved deploy addresses on this device?")){for(const k of ["tok","rec","mint","usdc"])localStorage.removeItem(LS+k);location.reload()}};
+let running=false;
+$("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true;st("s3","run");try{
+ await need();const r=roles();
+ // a. token
+ let tA=load("tok");
+ if(tA&&await code(tA)){say("a. Token already deployed: "+link(tA)+" ✓")}else{
+  say("a. Deploying DUSTY token… confirm in MetaMask");
+  const c=await new ethers.ContractFactory(TABI,TBC,signer).deploy(r.admin,r.delay,r.guardian,0n);
+  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();tA=await c.getAddress();save("tok",tA);say("a. Token: "+link(tA)+" ✓")}
+ const t=new ethers.Contract(tA,TABI,signer);
+ if(A(await t.owner())!==r.admin)throw new Error("token admin is not "+r.admin);
+ // b. recycler
+ let rA=load("rec");
+ if(rA&&await code(rA)){say("b. Recycler already deployed: "+link(rA)+" ✓")}else{
+  say("b. Deploying Recycler… confirm in MetaMask");
+  const c=await new ethers.ContractFactory(RABI,RBC,signer).deploy(r.admin,r.delay,r.guardian,tA,r.treas,r.signer,r.fee);
+  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();rA=await c.getAddress();save("rec",rA);say("b. Recycler: "+link(rA)+" ✓")}
+ const c=new ethers.Contract(rA,RABI,signer);
+ if(A(await c.dusty())!==A(tA))throw new Error("recycler points at a different token; tap Start over");
+ // c. minter
+ if(await t.isMinter(rA)&&(await t.minterAllowance(rA))>0n){say("c. Recycler already allowed to mint ✓")}else{
+  say("c. Allowing Recycler to mint (budget "+$("allow").value+" DUSTY)… confirm in MetaMask");
+  const tx=await t.setMinter(rA,true,r.allow);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("c. Minter set ✓")}
+ // d. usdc
+ if(await c.allowedToken(r.usdc)){say("d. USDC already allowed ✓")}else{
+  say("d. Allowing USDC… confirm in MetaMask");const tx=await c.setAllowedToken(r.usdc,true);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("d. USDC allowed ✓")}
+ // e. verify
+ say("e. Verifying on chain…");await verify(tA,rA,r);st("s3","done");$("bGo").textContent="Done ✓";
+}catch(e){say("Stopped: "+emsg(e)+"<br>Fix it, then tap the button again to resume.","err");st("s3","bad");$("bGo").disabled=false;$("bGo").textContent="Resume deploy"}finally{running=false}};
+let block="";
+async function verify(tA,rA,r){
+ const pr=signer.provider,t=new ethers.Contract(tA,TABI,pr),c=new ethers.Contract(rA,RABI,pr);
+ const [tOwner,rOwner,sig,tr,fee,tok,isM,al,ok,paused,tp,pr1,pr2,sym,dec]=await Promise.all([t.owner(),c.owner(),c.quoteSigner(),c.treasury(),c.feeBps(),c.dusty(),t.isMinter(rA),t.minterAllowance(rA),c.allowedToken(r.usdc),c.paused(),t.paused(),
+  c.PAUSER_ROLE().then(x=>c.hasRole(x,r.guardian)),t.PAUSER_ROLE().then(x=>t.hasRole(x,r.guardian)),t.symbol(),t.decimals()]);
+ const f=v=>ethers.formatUnits(v,18);
+ const checks=[["token admin = "+r.admin,A(tOwner)===r.admin],["recycler admin = "+r.admin,A(rOwner)===r.admin],["quote signer = "+r.signer,A(sig)===r.signer],
+  ["treasury = "+r.treas,A(tr)===r.treas],["fee = "+r.fee+" bps",Number(fee)===r.fee],["recycler uses this token",A(tok)===A(tA)],["recycler is minter, budget "+f(al),isM&&al>0n],
+  ["USDC allowed",ok],["recycler not paused",!paused],["token minting not paused",!tp],["guardian can pause both",pr1&&pr2],["token is "+sym+" / "+dec+" decimals",sym==="DUSTY"&&Number(dec)===18]];
+ const good=checks.every(x=>x[1]);
+ block=`// ---- DUSTY MAINNET CONFIG (Base, chainId 8453) ----\nTOKEN_ADDRESS = "${tA}"\nRECYCLER_ADDRESS = "${rA}"\nQUOTE_SIGNER = "${r.signer}"\nADMIN = "${r.admin}"\nGUARDIAN = "${r.guardian}"\nTREASURY = "${r.treas}"\nADMIN_DELAY = ${r.delay}\nFEE_BPS = ${r.fee}\nUSDC = "${r.usdc}"\n// verified: ${good}`;
+ $("cout").innerHTML=(good?'<b>✓ All checks passed. Copy this and send it to Hark.</b>':'<span class="err">⚠ Some checks failed. Send this to Hark before using it.</span>')+"\n\n"+
+  checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+"\n\nToken "+link(tA)+"\nRecycler "+link(rA)+"\n\n"+block.replace(/</g,"&lt;");
+ st("s4",good?"done":"bad");$("bCopy").disabled=false;say("e. "+(good?"All checks passed ✓":"Some checks failed ✗"),good?"":"err")}
+$("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(block);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",block)}};
+// resume: if both saved and wallet connects, offer verify
+</script></body></html>
