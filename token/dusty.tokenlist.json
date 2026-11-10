@@ -1,0 +1,17 @@
+{
+  "name": "Dusty",
+  "timestamp": "2026-11-09T00:00:00.000Z",
+  "version": { "major": 1, "minor": 0, "patch": 0 },
+  "keywords": ["dusty", "base"],
+  "logoURI": "https://statxqo-clickit.github.io/dusty/token/dusty-256.png",
+  "tokens": [
+    {
+      "chainId": 8453,
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "Dusty",
+      "symbol": "DUSTY",
+      "decimals": 18,
+      "logoURI": "https://statxqo-clickit.github.io/dusty/token/dusty-256.png"
+    }
+  ]
+}

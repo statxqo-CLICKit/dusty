@@ -13,35 +13,46 @@ label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-
 .badge{display:inline-block;background:#3a1010;color:#ffb3b3;border:1px solid #ff6b6b;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}</style></head>
 <body><main>
 <span class="badge">BASE MAINNET · REAL ETH GAS</span>
-<h1>Deploy Dusty on Base</h1>
-<small>You sign every step in your own MetaMask. Nothing is sent without your tap. About 5 confirmations. Keep a little ETH on Base for gas (around $1–3 total). Contracts are unaudited; use at your own risk. Not financial advice.</small>
+<h1><img src="__LOGO_URL__" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Deploy Dusty on Base</h1>
+<small>You sign every step in your own MetaMask. Nothing is sent without your tap. 8 confirmations (5 if you set the partner allocation to 0). Keep a little ETH on Base for gas (around $1–3 total). Contracts are unaudited; use at your own risk. Not financial advice.</small>
 
 <div class="step" id="s1"><b>1. Connect MetaMask on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
 
 <div class="step" id="s2"><b>2. Check the settings</b><small><br>Prefilled for you. Only change these if you know why.</small>
 <label><small>Admin / owner (later: move to a Safe)</small><input id="admin" placeholder="connected wallet" autocomplete="off"></label>
 <label><small>Guardian (can pause only)</small><input id="guardian" placeholder="connected wallet" autocomplete="off"></label>
-<label><small>Treasury (receives the recycled dust)</small><input id="treas" placeholder="connected wallet" autocomplete="off"></label>
+<label><small>Fee payout 1 · 50% (Stan)</small><input id="payA" value="__STAN__" autocomplete="off"></label>
+<label><small>Fee payout 2 · 50% (Andrea)</small><input id="payB" value="__ANDREA__" autocomplete="off"></label>
+<small>The treasury is a 0xSplits 50/50 split of these two wallets (audited, no owner, can never be changed). All recycled dust lands there; tap <b>Distribute fees</b> on the <a href="treasury.html">treasury page</a> to pay both halves.</small>
+<div class="out" id="splitOut">Treasury split: connect to work out its address.</div>
 <label><small>Quote signer (Dusty quote service, mainnet key)</small><input id="signer" value="__SIGNER__" autocomplete="off"></label>
 <label><small>Fee in basis points (500 = 5%)</small><input id="fee" value="500" inputmode="numeric"></label>
 <label><small>Admin transfer delay, seconds (172800 = 2 days)</small><input id="delay" value="172800" inputmode="numeric"></label>
 <label><small>Recycler mint budget, whole DUSTY</small><input id="allow" value="100000000" inputmode="numeric"></label>
 <label><small>Dust token to allow (USDC on Base)</small><input id="usdc" value="__USDC__" autocomplete="off"></label>
 <label class="chk"><input type="checkbox" id="ok1"><small>Signer address matches the one Hark gave me: <b>__SIGNER__</b></small></label>
+<div style="margin-top:12px;border-top:1px solid #1f3a2c;padding-top:8px"><small><b>Partner allocation, publicly visible</b> (set the amount to 0 to skip)</small><br>
+<small>With an amount above 0, the page gives your wallet a one-time mint budget, mints exactly that to the reserve address, then removes your mint permission (3 extra confirmations). Anyone can see this mint on Basescan.</small>
+<label><small>Partner allocation amount, whole DUSTY (0 = off)</small><input id="resAmt" value="5000000" inputmode="numeric"></label>
+<label><small>Reserve address (DUSTY Partner Allocation Wallet)</small><input id="resTo" value="__RESERVE__" autocomplete="off"></label></div>
+<label class="chk"><input type="checkbox" id="ok3"><small>Both payout wallets are right. Fees split 50/50 and this can never be changed later.</small></label>
 <label class="chk"><input type="checkbox" id="ok2"><small>I understand this deploys real contracts on Base mainnet, they are unaudited, and I pay the gas.</small></label>
 <div class="out" id="rolesOut"></div></div>
 
-<div class="step" id="s3"><b>3. Deploy everything</b><small><br>Runs 4 transactions in order. Approve each one in MetaMask. If something stops, tap the button again: it resumes where it left off.</small>
-<div class="out" id="plan">a. Deploy DUSTY token
-b. Deploy Recycler
-c. token.setMinter(recycler, true, budget)
-d. recycler.setAllowedToken(USDC, true)
-e. Read everything back and verify</div>
+<div class="step" id="s3"><b>3. Deploy everything</b><small><br>Runs 8 transactions in order (5 if the partner allocation is 0). Approve each one in MetaMask. If something stops, tap the button again: it resumes where it left off.</small>
+<div class="out" id="plan">a. Create the 50/50 fee split (0xSplits)
+b. Deploy DUSTY token
+c. Deploy Recycler (treasury = the split)
+d. token.setMinter(recycler, true, budget)
+e. recycler.setAllowedToken(USDC, true)
+f. Partner allocation: setMinter(you, amount) → mint to partner wallet → revoke (skipped at 0)
+g. Read everything back and verify</div>
 <button id="bGo">Start deploy</button><div class="out" id="log"></div></div>
 
 <div class="step" id="s4"><b>4. Result</b><div class="out" id="cout">Not done yet.</div><button id="bCopy" class="sec" disabled>Copy config for Hark</button>
+<button id="bWatch" class="sec" disabled>Add DUSTY to MetaMask</button>
 <button id="bReset" class="sec">Start over (forget saved addresses)</button></div>
-<small>Next: <a href="seed-pool.html">seed the DUSTY/USDC pool</a> · Later admin tasks: <a href="recycler.html">admin console</a> · <a href="terms.html">Terms</a></small>
+<small>Next: <a href="seed-pool.html">seed the DUSTY/USDC pool</a> · <a href="treasury.html">Treasury (distribute fees)</a> · Later admin tasks: <a href="recycler.html">admin console</a> · <a href="terms.html">Terms</a></small>
 </main>
 <script type="module">
 import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
@@ -51,6 +62,9 @@ const RABI=__REC_ABI__;
 const RBC="__REC_BC__";
 const BC_SHA="__BC_SHA__";
 const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org",EXPECTED_SIGNER="__SIGNER__";
+const SPLIT_MAIN="__SPLIT_MAIN__"; // 0xSplits v1 SplitMain, Base (docs.splits.org/core/split)
+const SABI=["function createSplit(address[],uint32[],uint32,address) returns (address)","function predictImmutableSplitAddress(address[],uint32[],uint32) view returns (address)","function getHash(address) view returns (bytes32)","function getController(address) view returns (address)"];
+const LOGO="__LOGO_URL__";
 const LS="dmain_";let signer,me;const $=id=>document.getElementById(id);
 const say=(t,cls)=>{const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=t;$("log").appendChild(d)};
 const emsg=e=>(e&&(e.shortMessage||e.reason||e.info?.error?.message||e.message))||String(e);
@@ -68,7 +82,8 @@ async function connect(){try{
  const p=new ethers.BrowserProvider(window.ethereum);const n=await p.getNetwork();
  if(n.chainId!==CHAIN){$("who").textContent="Your wallet is not on Base. Switch to Base in MetaMask, then tap Connect again.";signer=null;st("s1","bad");return}
  signer=await p.getSigner();me=await signer.getAddress();const bal=await p.getBalance(me);
- for(const k of ["admin","guardian","treas"]) if(!$(k).value) $(k).value=me;
+ for(const k of ["admin","guardian"]) if(!$(k).value) $(k).value=me;
+ roles(true).catch(()=>{});
  $("who").innerHTML=link(me)+"  ·  "+Number(ethers.formatEther(bal)).toFixed(5)+" ETH on Base"+(bal<ethers.parseEther("0.0003")?'<br><span class="warn">⚠ Low ETH for gas. Add a little ETH on Base first.</span>':"");
  st("s1","done");
 }catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
@@ -76,64 +91,106 @@ ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network cha
 ethereum?.on?.("accountsChanged",()=>{signer=null;$("who").textContent="Account changed. Tap Connect again."});
 async function need(){if(!signer)await connect();if(!signer)throw new Error("connect your wallet on Base first (step 1)");
  const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base mainnet (8453)")}
-function roles(){
- const r={admin:A($("admin").value||me),guardian:A($("guardian").value||me),treas:A($("treas").value||me),signer:A($("signer").value),usdc:A($("usdc").value),
-  fee:Number($("fee").value),delay:BigInt(($("delay").value||"0").trim()),allow:ethers.parseUnits(($("allow").value||"0").trim(),18)};
- if(!$("ok1").checked||!$("ok2").checked)throw new Error("tick both boxes in step 2");
+async function roles(quiet){
+ const pa=A($("payA").value),pb=A($("payB").value);
+ if(pa===pb)throw new Error("the two payout wallets must differ");
+ const accounts=BigInt(pa)<BigInt(pb)?[pa,pb]:[pb,pa],pct=[500000,500000]; // 0xSplits: sorted, sums to 1e6
+ const sm=new ethers.Contract(SPLIT_MAIN,SABI,signer.provider);
+ const split=A(await sm.predictImmutableSplitAddress(accounts,pct,0));
+ const hash=ethers.keccak256(ethers.solidityPacked(["address[]","uint32[]","uint32"],[accounts,pct,0]));
+ $("splitOut").innerHTML="Treasury split (50/50, immutable): "+link(split);
+ const resAmt=ethers.parseUnits((($("resAmt").value||"0").trim().replace(/,/g,""))||"0",18);
+ const r={admin:A($("admin").value||me),guardian:A($("guardian").value||me),treas:split,split,accounts,pct,hash,signer:A($("signer").value),usdc:A($("usdc").value),
+  fee:Number($("fee").value),delay:BigInt(($("delay").value||"0").trim()),allow:ethers.parseUnits(($("allow").value||"0").trim(),18),
+  resAmt,resTo:resAmt>0n?A($("resTo").value):null};
+ if(quiet)return r;
+ if(!$("ok1").checked||!$("ok2").checked||!$("ok3").checked)throw new Error("tick all three boxes in step 2");
  if(r.signer!==A(EXPECTED_SIGNER))throw new Error("quote signer differs from the one Hark generated ("+EXPECTED_SIGNER+")");
- if([r.admin,r.guardian,r.treas].includes(r.signer))throw new Error("quote signer must differ from admin, guardian and treasury");
+ if([r.admin,r.guardian,pa,pb].includes(r.signer))throw new Error("quote signer must differ from admin, guardian and the payout wallets");
  if(!(Number.isInteger(r.fee)&&r.fee>=0&&r.fee<=1000))throw new Error("fee must be 0-1000");
  if(r.delay>2592000n)throw new Error("delay over 30 days, check it");
- const w=[];if(r.admin!==me)w.push("admin is not the connected wallet: steps c and d must be signed by the admin, so they will fail here");
- if(r.treas===r.admin)w.push("treasury = admin (fine to start; move to a separate wallet or Safe later)");
+ if(r.resAmt>0n&&r.resTo===r.signer)throw new Error("reserve address must not be the quote signer");
+ const w=[];if(r.admin!==me)w.push("admin is not the connected wallet: steps d, e and f must be signed by the admin, so they will fail here");
+ if(r.resAmt>0n)w.push("partner allocation (publicly visible): "+$("resAmt").value+" DUSTY will be minted to "+r.resTo);
  $("rolesOut").innerHTML=w.map(x=>'<span class="warn">⚠ '+x+'</span>').join("<br>");return r}
 const save=(k,v)=>localStorage.setItem(LS+k,v),load=k=>localStorage.getItem(LS+k);
 async function code(a){return (await signer.provider.getCode(a))!=="0x"}
 $("bConnect").onclick=connect;
-$("bReset").onclick=()=>{if(confirm("Forget saved deploy addresses on this device?")){for(const k of ["tok","rec","mint","usdc"])localStorage.removeItem(LS+k);location.reload()}};
+$("bReset").onclick=()=>{if(confirm("Forget saved deploy addresses on this device?")){for(const k of ["tok","rec","mint","usdc","resv"])localStorage.removeItem(LS+k);location.reload()}};
 let running=false;
 $("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true;st("s3","run");try{
- await need();const r=roles();
- // a. token
+ await need();const r=await roles();
+ // a. 50/50 split (0xSplits, immutable: no controller)
+ const sm=new ethers.Contract(SPLIT_MAIN,SABI,signer);
+ if(await code(r.split)){
+  if((await sm.getHash(r.split))!==r.hash)throw new Error("an account exists at the split address but it is not this split");
+  say("a. 50/50 split already exists: "+link(r.split)+" ✓")}else{
+  say("a. Creating the 50/50 fee split… confirm in MetaMask");
+  const tx=await sm.createSplit(r.accounts,r.pct,0,ethers.ZeroAddress);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();
+  let ok=false;for(let i=0;i<20&&!ok;i++){ok=await code(r.split);if(!ok)await new Promise(z=>setTimeout(z,1000))} // RPC nodes can lag a block
+  if(!ok)throw new Error("split not visible yet at "+r.split+"; tap Resume in a few seconds");say("a. Split: "+link(r.split)+" ✓")}
+ // b. token
  let tA=load("tok");
- if(tA&&await code(tA)){say("a. Token already deployed: "+link(tA)+" ✓")}else{
-  say("a. Deploying DUSTY token… confirm in MetaMask");
+ if(tA&&await code(tA)){say("b. Token already deployed: "+link(tA)+" ✓")}else{
+  say("b. Deploying DUSTY token… confirm in MetaMask");
   const c=await new ethers.ContractFactory(TABI,TBC,signer).deploy(r.admin,r.delay,r.guardian,0n);
-  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();tA=await c.getAddress();save("tok",tA);say("a. Token: "+link(tA)+" ✓")}
+  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();tA=await c.getAddress();save("tok",tA);say("b. Token: "+link(tA)+" ✓")}
  const t=new ethers.Contract(tA,TABI,signer);
  if(A(await t.owner())!==r.admin)throw new Error("token admin is not "+r.admin);
- // b. recycler
+ // c. recycler
  let rA=load("rec");
- if(rA&&await code(rA)){say("b. Recycler already deployed: "+link(rA)+" ✓")}else{
-  say("b. Deploying Recycler… confirm in MetaMask");
+ if(rA&&await code(rA)){say("c. Recycler already deployed: "+link(rA)+" ✓")}else{
+  say("c. Deploying Recycler… confirm in MetaMask");
   const c=await new ethers.ContractFactory(RABI,RBC,signer).deploy(r.admin,r.delay,r.guardian,tA,r.treas,r.signer,r.fee);
-  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();rA=await c.getAddress();save("rec",rA);say("b. Recycler: "+link(rA)+" ✓")}
+  say("&nbsp;&nbsp;tx "+link(c.deploymentTransaction().hash,"tx"));await c.waitForDeployment();rA=await c.getAddress();save("rec",rA);say("c. Recycler: "+link(rA)+" ✓")}
  const c=new ethers.Contract(rA,RABI,signer);
  if(A(await c.dusty())!==A(tA))throw new Error("recycler points at a different token; tap Start over");
- // c. minter
- if(await t.isMinter(rA)&&(await t.minterAllowance(rA))>0n){say("c. Recycler already allowed to mint ✓")}else{
-  say("c. Allowing Recycler to mint (budget "+$("allow").value+" DUSTY)… confirm in MetaMask");
-  const tx=await t.setMinter(rA,true,r.allow);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("c. Minter set ✓")}
- // d. usdc
- if(await c.allowedToken(r.usdc)){say("d. USDC already allowed ✓")}else{
-  say("d. Allowing USDC… confirm in MetaMask");const tx=await c.setAllowedToken(r.usdc,true);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("d. USDC allowed ✓")}
- // e. verify
- say("e. Verifying on chain…");await verify(tA,rA,r);st("s3","done");$("bGo").textContent="Done ✓";
+ if(A(await c.treasury())!==r.split)throw new Error("saved recycler's treasury is not the 50/50 split; tap Start over");
+ // d. minter
+ if(await t.isMinter(rA)&&(await t.minterAllowance(rA))>0n){say("d. Recycler already allowed to mint ✓")}else{
+  say("d. Allowing Recycler to mint (budget "+$("allow").value+" DUSTY)… confirm in MetaMask");
+  const tx=await t.setMinter(rA,true,r.allow);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("d. Minter set ✓")}
+ // e. usdc
+ if(await c.allowedToken(r.usdc)){say("e. USDC already allowed ✓")}else{
+  say("e. Allowing USDC… confirm in MetaMask");const tx=await c.setAllowedToken(r.usdc,true);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();say("e. USDC allowed ✓")}
+ // f. optional partnership reserve (off at 0)
+ if(r.resAmt===0n){say("f. Partner allocation: off (amount 0), skipped")}else{
+  const rs=JSON.parse(load("resv")||"null");
+  if(rs&&rs.done&&rs.to===r.resTo&&rs.amt===r.resAmt.toString()){say("f. Reserve already minted ✓")}else{
+   if(rs&&rs.to&&(rs.to!==r.resTo||rs.amt!==r.resAmt.toString()))throw new Error("a different reserve was started on this device ("+rs.amt.slice(0,-18)+" DUSTY to "+rs.to+"); tap Start over or restore those values");
+   let minted=!!(rs&&rs.minted);
+   if(!minted){
+    if(!(await t.isMinter(me))||(await t.minterAllowance(me))<r.resAmt){
+     say("f1. One-time mint budget for your wallet ("+$("resAmt").value+" DUSTY)… confirm in MetaMask");
+     const tx=await t.setMinter(me,true,r.resAmt);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait()}
+    say("f2. Minting "+$("resAmt").value+" DUSTY to the reserve… confirm in MetaMask");
+    const tx=await t.mintReward(r.resTo,r.resAmt,ethers.id("DUSTY_PARTNERSHIP_RESERVE"));say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait();
+    minted=true;save("resv",JSON.stringify({to:r.resTo,amt:r.resAmt.toString(),minted:true}))}
+   if(await t.isMinter(me)){say("f3. Removing your wallet's mint permission… confirm in MetaMask");
+    const tx=await t.setMinter(me,false,0n);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));await tx.wait()}
+   save("resv",JSON.stringify({to:r.resTo,amt:r.resAmt.toString(),minted:true,done:true}));say("f. Reserve minted, your mint permission removed ✓")}}
+ // g. verify
+ say("g. Verifying on chain…");await verify(tA,rA,r);st("s3","done");$("bGo").textContent="Done ✓";
 }catch(e){say("Stopped: "+emsg(e)+"<br>Fix it, then tap the button again to resume.","err");st("s3","bad");$("bGo").disabled=false;$("bGo").textContent="Resume deploy"}finally{running=false}};
 let block="";
 async function verify(tA,rA,r){
  const pr=signer.provider,t=new ethers.Contract(tA,TABI,pr),c=new ethers.Contract(rA,RABI,pr);
+ const sm=new ethers.Contract(SPLIT_MAIN,SABI,pr);
+ const [sCode,sHash,sCtl,meMinter,resBal]=await Promise.all([pr.getCode(r.split),sm.getHash(r.split),sm.getController(r.split),t.isMinter(me),r.resTo?t.balanceOf(r.resTo):0n]);
  const [tOwner,rOwner,sig,tr,fee,tok,isM,al,ok,paused,tp,pr1,pr2,sym,dec]=await Promise.all([t.owner(),c.owner(),c.quoteSigner(),c.treasury(),c.feeBps(),c.dusty(),t.isMinter(rA),t.minterAllowance(rA),c.allowedToken(r.usdc),c.paused(),t.paused(),
   c.PAUSER_ROLE().then(x=>c.hasRole(x,r.guardian)),t.PAUSER_ROLE().then(x=>t.hasRole(x,r.guardian)),t.symbol(),t.decimals()]);
  const f=v=>ethers.formatUnits(v,18);
  const checks=[["token admin = "+r.admin,A(tOwner)===r.admin],["recycler admin = "+r.admin,A(rOwner)===r.admin],["quote signer = "+r.signer,A(sig)===r.signer],
-  ["treasury = "+r.treas,A(tr)===r.treas],["fee = "+r.fee+" bps",Number(fee)===r.fee],["recycler uses this token",A(tok)===A(tA)],["recycler is minter, budget "+f(al),isM&&al>0n],
-  ["USDC allowed",ok],["recycler not paused",!paused],["token minting not paused",!tp],["guardian can pause both",pr1&&pr2],["token is "+sym+" / "+dec+" decimals",sym==="DUSTY"&&Number(dec)===18]];
+  ["treasury = 50/50 split "+r.split,A(tr)===r.split],["split exists, recipients "+r.accounts.join(" + ")+" at 50% each",sCode!=="0x"&&sHash===r.hash],["split is immutable (no controller)",A(sCtl)===ethers.ZeroAddress],["fee = "+r.fee+" bps",Number(fee)===r.fee],["recycler uses this token",A(tok)===A(tA)],["recycler is minter, budget "+f(al),isM&&al>0n],
+  ["USDC allowed",ok],["recycler not paused",!paused],["token minting not paused",!tp],["guardian can pause both",pr1&&pr2],["token is "+sym+" / "+dec+" decimals",sym==="DUSTY"&&Number(dec)===18],["your wallet cannot mint",!meMinter]];
+ if(r.resAmt>0n)checks.push(["reserve holds ≥ "+f(r.resAmt)+" DUSTY",resBal>=r.resAmt]);
  const good=checks.every(x=>x[1]);
- block=`// ---- DUSTY MAINNET CONFIG (Base, chainId 8453) ----\nTOKEN_ADDRESS = "${tA}"\nRECYCLER_ADDRESS = "${rA}"\nQUOTE_SIGNER = "${r.signer}"\nADMIN = "${r.admin}"\nGUARDIAN = "${r.guardian}"\nTREASURY = "${r.treas}"\nADMIN_DELAY = ${r.delay}\nFEE_BPS = ${r.fee}\nUSDC = "${r.usdc}"\n// verified: ${good}`;
+ block=`// ---- DUSTY MAINNET CONFIG (Base, chainId 8453) ----\nTOKEN_ADDRESS = "${tA}"\nRECYCLER_ADDRESS = "${rA}"\nQUOTE_SIGNER = "${r.signer}"\nADMIN = "${r.admin}"\nGUARDIAN = "${r.guardian}"\nTREASURY = "${r.split}"  // 0xSplits immutable 50/50\nSPLIT_MAIN = "${SPLIT_MAIN}"\nSPLIT_RECIPIENTS = ["${r.accounts[0]}", "${r.accounts[1]}"]  // 500000 / 500000 of 1e6\nRESERVE = ${r.resAmt>0n?'"'+r.resTo+'" '+f(r.resAmt)+" DUSTY":"none"}\nADMIN_DELAY = ${r.delay}\nFEE_BPS = ${r.fee}\nUSDC = "${r.usdc}"\n// verified: ${good}`;
  $("cout").innerHTML=(good?'<b>✓ All checks passed. Copy this and send it to Hark.</b>':'<span class="err">⚠ Some checks failed. Send this to Hark before using it.</span>')+"\n\n"+
-  checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+"\n\nToken "+link(tA)+"\nRecycler "+link(rA)+"\n\n"+block.replace(/</g,"&lt;");
- st("s4",good?"done":"bad");$("bCopy").disabled=false;say("e. "+(good?"All checks passed ✓":"Some checks failed ✗"),good?"":"err")}
+  checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+"\n\nSplit "+link(r.split)+"\nToken "+link(tA)+"\nRecycler "+link(rA)+"\n\n"+block.replace(/</g,"&lt;");
+ st("s4",good?"done":"bad");$("bCopy").disabled=false;$("bWatch").disabled=false;watchTok=tA;say("g. "+(good?"All checks passed ✓":"Some checks failed ✗"),good?"":"err")}
+let watchTok="";
+$("bWatch").onclick=async()=>{try{await ethereum.request({method:"wallet_watchAsset",params:{type:"ERC20",options:{address:watchTok,symbol:"DUSTY",decimals:18,image:LOGO}}})}catch(e){say("Add to wallet: "+emsg(e),"err")}};
 $("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(block);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",block)}};
 // resume: if both saved and wallet connects, offer verify
 </script></body></html>

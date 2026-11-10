@@ -17,7 +17,7 @@ label{display:block;margin-top:10px}.chk{display:flex;gap:10px;align-items:flex-
 .disc{color:#8ab;font-size:13px;margin-top:18px}</style></head>
 <body><main>
 <span class="badge">BASE MAINNET · REAL USDC + ETH GAS</span>
-<h1>Seed the DUSTY/USDC pool</h1>
+<h1><img src="__LOGO_URL__" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Seed the DUSTY/USDC pool</h1>
 <small>Creates the DUSTY/USDC trading pool on Uniswap v3 (Base) and adds the first liquidity. You sign every step in your own MetaMask. Up to 8 confirmations. Run this after <a href="deploy-mainnet.html">Deploy on Base</a>. The USDC you add goes into the pool, where traders can swap it out for DUSTY; you can withdraw your position later from the Uniswap app.</small>
 
 <div class="step" id="s1"><b>1. Connect MetaMask on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
@@ -44,9 +44,10 @@ i. Read everything back</div>
 <button id="bGo">Start</button><div class="out" id="log"></div></div>
 
 <div class="step" id="s4"><b>4. Result</b><div class="out" id="cout">Not done yet.</div><button id="bCopy" class="sec" disabled>Copy pool config for Hark</button>
+<button id="bWatch" class="sec">Add DUSTY to MetaMask</button>
 <button id="bReset" class="sec">Start over (forget saved pool progress)</button></div>
 <p class="disc" data-disclaimer></p>
-<small><a href="deploy-mainnet.html">Deploy page</a> · <a href="recycler.html">Admin console</a> · <a href="terms.html">Terms</a></small>
+<small><a href="deploy-mainnet.html">Deploy page</a> · <a href="treasury.html">Treasury (distribute fees)</a> · <a href="recycler.html">Admin console</a> · <a href="terms.html">Terms</a></small>
 </main>
 <script type="module">
 import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
@@ -188,5 +189,6 @@ async function verify(tok,pool,dustyIs0){
   "\n\nPrice now: 1 DUSTY = $"+fmtUsd(px)+" ($1 ≈ "+Number(perUsd/10n**12n)/1e6+" DUSTY)\nPool holds "+Number(ethers.formatUnits(pd,18)).toLocaleString("en-US")+" DUSTY + "+ethers.formatUnits(pu,6)+" USDC\n\n"+
   checks.map(x=>(x[1]?"✓ ":"✗ ")+x[0]).join("\n")+"\n\nPool "+link(pool)+"\n\n"+block.replace(/</g,"&lt;");
  st("s4",good?"done":"bad");$("bCopy").disabled=false;say("i. "+(good?"All checks passed ✓":"Some checks failed ✗"),good?"":"err")}
+$("bWatch").onclick=async()=>{try{if(!window.ethereum)throw new Error("open this page in MetaMask");await ethereum.request({method:"wallet_watchAsset",params:{type:"ERC20",options:{address:A($("tok").value),symbol:"DUSTY",decimals:18,image:"__LOGO_URL__"}}})}catch(e){say("Add to wallet: "+emsg(e),"err")}};
 $("bCopy").onclick=async()=>{try{await navigator.clipboard.writeText(block);$("bCopy").textContent="Copied ✓"}catch(e){prompt("Copy:",block)}};
 </script></body></html>

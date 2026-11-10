@@ -570,7 +570,9 @@
       const IS_TEST = LAUNCH_MODE !== "mainnet";
       const LIVE = !!(NET.token && NET.recycler);
       const TOKEN_ADDRESS = NET.token, RECYCLER_ADDRESS = NET.recycler, QUOTE_URL = NET.quote;
-      const RATE = 1000; // DUSTY per $1 of dust (before the 5% fee)
+      const RATE = 1000; // testnet: DUSTY per $1 of dust (before the 5% fee). Mainnet uses the Worker's live /price (pool TWAP).
+      const PRICE_API = QUOTE_URL.replace(/\/quote$/, "/price");
+      let liveRate = IS_TEST ? RATE : 0; // mainnet: 0 until /price answers
       const FEE_BPS = 500;
       /* ========================================================================================== */
       let recRows = [];
@@ -1110,10 +1112,22 @@
       function updateTotals() {
         const c = selectedCents();
         $("#x-usd").textContent = "$" + (c / 100).toFixed(2);
-        $("#x-out").textContent = fmt(Math.floor((c / 100) * RATE * (10000 - FEE_BPS) / 10000)) + " " + TOKEN_TICKER;
+        $("#x-out").textContent = liveRate > 0
+          ? (IS_TEST ? "" : "≈ ") + fmt(Math.floor((c / 100) * liveRate * (10000 - FEE_BPS) / 10000)) + " " + TOKEN_TICKER
+          : "Live price loading…";
         $("#x-recycle").disabled = c === 0 || !LIVE || busy;
         if (!LIVE) $("#x-recycle").textContent = "♻ Recycling opens soon";
       }
+      // Mainnet: preview follows the quote Worker's /price (30-min pool TWAP); the signed quote is still the final number.
+      async function loadRate() {
+        if (IS_TEST) return;
+        try {
+          const r = await fetch(PRICE_API, { cache: "no-store" }); const j = await r.json().catch(() => ({}));
+          if (r.ok && Number(j.dustyPerUsd) > 0) liveRate = Number(j.dustyPerUsd);
+        } catch (e) {}
+        updateTotals();
+      }
+      if (!IS_TEST) { loadRate(); setInterval(loadRate, 60000); }
       $("#x-list").addEventListener("change", updateTotals);
       $("#x-amt").addEventListener("input", () => {
         const r0 = dustRows[0]; if (!r0) return;
@@ -1310,7 +1324,7 @@
           const prov = session.provider || window.ethereum;
           if (!LIVE) { toast("$" + TOKEN_TICKER + " address is published at launch"); return; }
           try { await ensureNet(prov); } catch (e) {}
-          await prov.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: TOKEN_ADDRESS, symbol: TOKEN_TICKER, decimals: 18, image: new URL("icon-192.png", location.href).href } } });
+          await prov.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: TOKEN_ADDRESS, symbol: TOKEN_TICKER, decimals: 18, image: "https://statxqo-clickit.github.io/dusty/token/dusty-256.png" } } });
           toast("$" + TOKEN_TICKER + " added on " + NET.name);
         } catch (e) { toast("Couldn't add token"); }
       });

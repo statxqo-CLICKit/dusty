@@ -1,0 +1,91 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusty · Treasury (50/50 fee split)</title><meta name="robots" content="noindex">
+<link rel="icon" href="favicon-32.png">
+<script src="disclaimer.js" defer></script>
+<style>*{box-sizing:border-box}body{margin:0;background:#05090a;color:#e8fff0;font:16px system-ui,sans-serif;display:flex;justify-content:center}
+main{max-width:520px;width:100%;padding:20px 16px 60px}h1{color:#39ff88;font-size:24px;margin:8px 0}
+.step{background:#0d1714;border:1px solid #1f3a2c;border-radius:14px;padding:14px;margin:12px 0}
+.step b{color:#39ff88}.step.done{border-color:#39ff88}.step.run{border-color:#ffcf5a}.step.bad{border-color:#ff6b6b}
+button{width:100%;min-height:48px;padding:14px;border:0;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;font-size:16px;margin-top:10px}
+button.sec{background:#1f3a2c;color:#e8fff0}button:disabled{background:#2a3d33;color:#7a9}
+input{width:100%;min-height:44px;padding:10px;border-radius:8px;border:1px solid #2a4;background:#08100d;color:#e8fff0;font:14px monospace;margin-top:6px}
+.out{font:13px monospace;word-break:break-all;color:#bfe;margin-top:8px;white-space:pre-wrap}a{color:#39ff88}small{color:#8ab}.warn{color:#ffcf5a}.err{color:#ff8a8a}
+label{display:block;margin-top:10px}
+.badge{display:inline-block;background:#3a1010;color:#ffb3b3;border:1px solid #ff6b6b;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
+.disc{color:#8ab;font-size:13px;margin-top:18px}</style></head>
+<body><main>
+<span class="badge">BASE MAINNET · REAL ETH GAS</span>
+<h1><img src="https://statxqo-clickit.github.io/dusty/token/dusty-256.png" alt="" width="32" height="32" style="vertical-align:-6px;border-radius:8px"> Treasury · 50/50 split</h1>
+<small>All recycled dust goes to a 0xSplits split owned by nobody: half to Stan, half to Andrea, fixed forever. Tap <b>Distribute fees</b> to pay both wallets in one transaction. Anyone can tap it; the money can only go to the two wallets below.</small>
+
+<div class="step" id="s1"><b>1. Connect on Base</b><div class="out" id="who">Not connected</div><button id="bConnect">Connect &amp; switch to Base</button></div>
+
+<div class="step" id="s2"><b>2. Balances</b>
+<div class="out" id="split">Split: connect first.</div>
+<label><small>Token to pay out (USDC on Base by default)</small><input id="tok" value="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" autocomplete="off"></label>
+<div class="out" id="bal">–</div><button id="bRefresh" class="sec">Refresh</button></div>
+
+<div class="step" id="s3"><b>3. Pay both</b><small><br>One confirmation in MetaMask. Splits the waiting balance 50/50, then sends each half straight to each wallet (0xSplits keeps 1 unit of the token behind for gas).</small>
+<button id="bGo">Distribute fees</button><div class="out" id="log"></div></div>
+<p class="disc" data-disclaimer></p>
+<small><a href="deploy-mainnet.html">Deploy page</a> · <a href="seed-pool.html">Seed pool</a> · <a href="recycler.html">Admin console</a> · <a href="terms.html">Terms</a></small>
+</main>
+<script type="module">
+import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org";
+const SPLIT_MAIN="0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE";   // 0xSplits v1 SplitMain, Base (docs.splits.org/core/split)
+const MULTICALL3="0xcA11bde05977b3631167028862bE2a173976CA11";   // Multicall3, same address on every chain
+const PAY=["0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd","0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2"].map(a=>ethers.getAddress(a));
+const ACCOUNTS=BigInt(PAY[0])<BigInt(PAY[1])?[PAY[0],PAY[1]]:[PAY[1],PAY[0]],PCT=[500000,500000];
+const NAME={[PAY[0]]:"Stan",[PAY[1]]:"Andrea"};
+const SABI=["function predictImmutableSplitAddress(address[],uint32[],uint32) view returns (address)","function getHash(address) view returns (bytes32)",
+ "function getERC20Balance(address,address) view returns (uint256)","function distributeERC20(address,address,address[],uint32[],uint32,address)","function withdraw(address,uint256,address[])"];
+const MABI=["function aggregate3((address target,bool allowFailure,bytes callData)[]) payable returns ((bool success,bytes returnData)[])"];
+const EABI=["function balanceOf(address) view returns (uint256)","function symbol() view returns (string)","function decimals() view returns (uint8)"];
+const HASH=ethers.keccak256(ethers.solidityPacked(["address[]","uint32[]","uint32"],[ACCOUNTS,PCT,0]));
+let signer,me,SPLIT;const $=id=>document.getElementById(id);
+const say=(t,cls)=>{const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=t;$("log").appendChild(d)};
+const emsg=e=>(e&&(e.shortMessage||e.reason||e.info?.error?.message||e.message))||String(e);
+const link=(a,t)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${a.slice(0,10)}…${a.slice(-6)}</a>`;
+const st=(id,c)=>{$(id).className="step "+(c||"")};
+async function connect(){try{
+ if(!window.ethereum){$("who").innerHTML='No wallet found in this browser. Open this page inside the MetaMask app: <a href="https://metamask.app.link/dapp/'+location.host+location.pathname+'">open in MetaMask</a>';return}
+ await ethereum.request({method:"eth_requestAccounts"});
+ try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
+  if(e.code===4902||/unrecognized|not added/i.test(emsg(e)))await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://mainnet.base.org"],blockExplorerUrls:[SCAN]}]});else throw e}
+ const p=new ethers.BrowserProvider(window.ethereum);if((await p.getNetwork()).chainId!==CHAIN){$("who").textContent="Switch MetaMask to Base, then tap Connect again.";st("s1","bad");return}
+ signer=await p.getSigner();me=await signer.getAddress();
+ $("who").innerHTML=link(me)+" · "+Number(ethers.formatEther(await p.getBalance(me))).toFixed(5)+" ETH on Base";st("s1","done");
+ SPLIT=ethers.getAddress(await new ethers.Contract(SPLIT_MAIN,SABI,p).predictImmutableSplitAddress(ACCOUNTS,PCT,0));
+ await refresh();
+}catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
+ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
+async function state(){
+ const pr=signer.provider,sm=new ethers.Contract(SPLIT_MAIN,SABI,pr),tokA=ethers.getAddress($("tok").value.trim()),e=new ethers.Contract(tokA,EABI,pr);
+ const exists=(await pr.getCode(SPLIT))!=="0x"&&(await sm.getHash(SPLIT))===HASH;
+ const [sym,dec,inSplit,inMain,a0,a1]=await Promise.all([e.symbol(),e.decimals(),e.balanceOf(SPLIT),sm.getERC20Balance(SPLIT,tokA).then(async v=>v-await e.balanceOf(SPLIT)), // SplitMain adds the proxy balance for splits; keep only the part held in SplitMain
+ sm.getERC20Balance(ACCOUNTS[0],tokA),sm.getERC20Balance(ACCOUNTS[1],tokA)]);
+ return {tokA,sym,dec:Number(dec),exists,inSplit,inMain,pend:[a0,a1]}}
+async function refresh(){if(!signer)return;try{const s=await state();const f=v=>ethers.formatUnits(v,s.dec)+" "+s.sym;
+ $("split").innerHTML=(s.exists?"Split ✓ ":'<span class="warn">Split not created yet (deploy page step a) </span>')+link(SPLIT)+"\n"+ACCOUNTS.map(a=>NAME[a]+" 50% "+link(a)).join("\n");
+ $("bal").textContent="Waiting in split: "+f(s.inSplit+s.inMain)+"\nReady to send to "+NAME[ACCOUNTS[0]]+": "+f(s.pend[0])+"\nReady to send to "+NAME[ACCOUNTS[1]]+": "+f(s.pend[1]);
+ st("s2",s.exists?"done":"bad");return s}catch(e){$("bal").textContent="Error: "+emsg(e)}}
+$("bConnect").onclick=connect;$("bRefresh").onclick=refresh;
+let running=false;
+$("bGo").onclick=async()=>{if(running)return;running=true;$("bGo").disabled=true;st("s3","run");try{
+ if(!signer)await connect();if(!signer)throw new Error("connect on Base first");
+ const s=await state();if(!s.exists)throw new Error("the split does not exist yet");
+ const smI=new ethers.Interface(SABI),calls=[];
+ const toSplit=(s.inSplit>1n?s.inSplit-1n:0n)+(s.inMain>1n?s.inMain-1n:0n);
+ if(toSplit>0n)calls.push({target:SPLIT_MAIN,allowFailure:false,callData:smI.encodeFunctionData("distributeERC20",[SPLIT,s.tokA,ACCOUNTS,PCT,0,me])});
+ ACCOUNTS.forEach((a,i)=>{const after=s.pend[i]+toSplit*500000n/1000000n;if(after>1n)calls.push({target:SPLIT_MAIN,allowFailure:false,callData:smI.encodeFunctionData("withdraw",[a,0,[s.tokA]])})});
+ if(!calls.length)throw new Error("nothing to pay out yet");
+ const e=new ethers.Contract(s.tokA,EABI,signer.provider),b0=await Promise.all(ACCOUNTS.map(a=>e.balanceOf(a)));
+ say("Paying out "+ethers.formatUnits(toSplit+s.pend[0]+s.pend[1],s.dec)+" "+s.sym+"… confirm in MetaMask");
+ const tx=await new ethers.Contract(MULTICALL3,MABI,signer).aggregate3(calls);say("&nbsp;&nbsp;tx "+link(tx.hash,"tx"));const rc=await tx.wait();
+ if(!rc||rc.status!==1)throw new Error("transaction failed on chain");
+ const b1=await Promise.all(ACCOUNTS.map(a=>e.balanceOf(a)));
+ ACCOUNTS.forEach((a,i)=>say("✓ "+NAME[a]+" received "+ethers.formatUnits(b1[i]-b0[i],s.dec)+" "+s.sym));
+ st("s3","done");await refresh();
+}catch(e){say("Stopped: "+emsg(e),"err");st("s3","bad")}finally{running=false;$("bGo").disabled=false}};
+</script></body></html>

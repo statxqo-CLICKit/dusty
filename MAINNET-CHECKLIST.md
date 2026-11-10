@@ -5,7 +5,11 @@ Nothing below has been done on mainnet yet. Stan signs every on-chain step in Me
 ## Values
 | Item | Value |
 |---|---|
-| Admin / guardian / treasury (default) | Stan `0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd` (move admin to a Safe later) |
+| Admin / guardian (default) | Stan `0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd` (move admin to a Safe later) |
+| Treasury | 0xSplits v1 immutable 50/50 split `0x571E955471E93251d2a708Ea107eb86919639710` (Andrea `0x4eCDF3cA4BDc6Ee3257267384cf3915B49a585F2` 50% + Stan `0x9b8E…c7Fd` 50%, no controller). Created by the deploy page, step a. |
+| 0xSplits SplitMain (Base) | `0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE` (SplitWallet impl `0xD94c0CE4f8eEfA4Ebf44bf6665688EdEEf213B33`), from https://docs.splits.org/core/split, code checked on mainnet.base.org |
+| Multicall3 (Base) | `0xcA11bde05977b3631167028862bE2a173976CA11` (one-tap Distribute on treasury.html) |
+| Partner allocation (publicly visible) | 5,000,000 DUSTY → `0x4F9eb9a29c174Ec2a087545275Bf1e9070ef108C` (DUSTY Partner Allocation Wallet). Editable on the deploy page; 0 skips it. |
 | Quote signer (fresh mainnet key) | `0xE3ed6685AcB201EB40370d181766424C00F2515f` (key file only in Hark workspace `secrets/mainnet-signer.key`, chmod 600) |
 | USDC (Circle, Base) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Fee | 500 bps (5%) |
@@ -19,14 +23,22 @@ Nothing below has been done on mainnet yet. Stan signs every on-chain step in Me
 Uniswap addresses from https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments, checked with `eth_getCode` on mainnet.base.org (both have code; `NPM.factory()` returns the Factory).
 
 ## Order
-**deploy contracts → seed pool → upload Worker with RECYCLER and POOL → flip LAUNCH_MODE**
+**deploy page (8 approvals) → seed pool (up to 8 approvals, by 21:00 PT) → wait 30 min for TWAP → upload Worker with RECYCLER and POOL → flip LAUNCH_MODE (target 21:47 PT)**
+
+Approval counts Stan signs in MetaMask:
+| Page | Approvals |
+|---|---|
+| deploy-mainnet.html | **8**: split, token, recycler, setMinter(recycler), allow USDC, setMinter(self, 5M), mint 5M to partner wallet, revoke self (5 if partner amount is 0) |
+| seed-pool.html | up to **8**: setMinter(self, seed), mint seed, revoke, approve DUSTY, approve USDC, create pool, add liquidity, price history |
+| treasury.html | **1** per payout (Distribute fees → both wallets paid 50/50) |
+| **Total to launch** | **16** (+1 each time fees are paid out) |
 
 ## Steps
-1. [ ] Stan has a little ETH on **Base** in `0x9b8E…c7fd` (≈ $1–3 covers the 4 deploy txs + up to 8 pool txs).
+1. [ ] Stan has a little ETH on **Base** in `0x9b8E…c7fd` (≈ $1–3 covers the 8 deploy txs + up to 8 pool txs).
 2. [ ] Stan opens **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/deploy-mainnet.html**
        (desktop: https://statxqo-clickit.github.io/dusty/deploy-mainnet.html).
-3. [ ] Connect → switches/adds Base → check the settings → tick both boxes → **Start deploy** → approve 4 transactions.
-4. [ ] All 12 read-back checks show ✓ → **Copy config for Hark** → send to Hark.
+3. [ ] Connect → switches/adds Base → check the settings (payout wallets, partner allocation 5,000,000 → 0x4F9e…108C) → tick all three boxes → **Start deploy** → approve 8 transactions.
+4. [ ] All 16 read-back checks show ✓ (split exists + immutable, treasury = split, partner wallet holds the allocation, your wallet cannot mint) → **Copy config for Hark** → send to Hark.
 5. [ ] **Seed the pool.** Stan needs the USDC to add (default 15) + a little ETH on Base in the admin wallet.
        Opens **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/seed-pool.html**
        (desktop: https://statxqo-clickit.github.io/dusty/seed-pool.html). Same device as the deploy page fills the token address.
@@ -46,9 +58,11 @@ Uniswap addresses from https://docs.uniswap.org/contracts/v3/reference/deploymen
 7. [ ] Cloudflare dashboard: add a rate-limit rule on `/quote` (e.g. 20 req/min per IP) (M-2).
 8. [ ] Hark fills (flip LAUNCH_MODE last) `NETWORKS.mainnet.token` / `.recycler` in index.html, sets `LAUNCH_MODE = "mainnet"`, bumps sw cache, pushes.
 9. [ ] Smoke test with $1 of USDC on Base: expect **≈3,167 DUSTY** at the $0.0003 pool price (varies as the pool trades) and a basescan.org tx link.
-10. [ ] Verify both contracts on Basescan: `ETHERSCAN_API_KEY=… tools/basescan-verify.sh <TOKEN> <RECYCLER> <ADMIN> <GUARDIAN> <TREASURY> 0xE3ed6685AcB201EB40370d181766424C00F2515f 172800 500`
+10. [ ] Verify both contracts on Basescan: `ETHERSCAN_API_KEY=… tools/basescan-verify.sh <TOKEN> <RECYCLER> <ADMIN> <GUARDIAN> 0x571E955471E93251d2a708Ea107eb86919639710 0xE3ed6685AcB201EB40370d181766424C00F2515f 172800 500`
        (needs an Etherscan v2 API key).
-11. [ ] Later: move admin to a Safe (two-step, delay applies), separate guardian and treasury wallets.
+11. [ ] Fees: recycled dust collects in the split. Open **https://metamask.app.link/dapp/statxqo-clickit.github.io/dusty/treasury.html** → Connect → **Distribute fees** → 1 approval pays Stan and Andrea 50/50 (0xSplits keeps 1 unit per token for gas).
+12. [ ] Token listing (logo, Basescan, Trust Wallet, CoinGecko): see `token/LISTING.md`.
+13. [ ] Later: move admin to a Safe (two-step, delay applies) and a separate guardian wallet. Treasury is already the 50/50 split.
 
 ## Basescan verify inputs
 - Compiler `v0.8.24+commit.e11b9ed9`, optimizer **on, 200 runs**, EVM **cancun**, viaIR **off**, license MIT, OpenZeppelin 5.6.1.
