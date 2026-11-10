@@ -557,13 +557,14 @@
       const TOKEN_TICKER = "DUSTY";
       const TOKEN_NAME = "Dusty";
       /* ================= LAUNCH CONFIG: the only block to edit when going live ================= */
-      const LAUNCH_MODE = "testnet"; // "testnet" (Base Sepolia) | "mainnet" (Base). Flip only after mainnet addresses are filled in.
+      const LAUNCH_MODE = "mainnet"; // "testnet" (Base Sepolia) | "mainnet" (Base). Flip only after mainnet addresses are filled in.
       const NETWORKS = {
         testnet: { chainId: 84532, hex: "0x14a34", name: "Base Sepolia", rpc: "https://sepolia.base.org", scan: "https://sepolia.basescan.org",
           token: "0x297cBf5BB6CE735D879557E1099954569E246D43", recycler: "0x199Fef502B969018091294a69e6634DA7aC9e64d", recyclerVersion: 1,
           quote: "https://dusty-quote.statxqo.workers.dev/quote", recyclable: { "0x036cbd53842c5426634e7929541ec2318f3dcf7e": { sym: "USDC", dec: 6, usd: 1 } } },
         mainnet: { chainId: 8453, hex: "0x2105", name: "Base", rpc: "https://mainnet.base.org", scan: "https://basescan.org",
-          token: "", recycler: "", recyclerVersion: 2, // ← fill from deploy-mainnet.html "Copy config"
+          token: "0xAf47E82C6f7cB9E28bB0382a1FeAdBC6308FDDc1", recycler: "0x199Fef502B969018091294a69e6634DA7aC9e64d", recyclerVersion: 2, // v2 on Base 8453, deployed 2026-11-09 (same addresses exist on Base Sepolia as other contracts: always key by chainId)
+          split: "0x571E955471E93251d2a708Ea107eb86919639710", usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           quote: "https://dusty-quote-mainnet.statxqo.workers.dev/quote", recyclable: { "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": { sym: "USDC", dec: 6, usd: 1 } } },
       };
       const NET = NETWORKS[LAUNCH_MODE];
