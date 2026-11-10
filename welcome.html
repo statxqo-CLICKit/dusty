@@ -26,6 +26,7 @@ h1 span{color:#39ff14;text-shadow:0 0 18px rgba(57,255,20,.45)}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 18px;border-radius:14px;font-weight:800;font-size:17px;text-decoration:none;border:0;cursor:pointer;width:100%}
 .btn.p{background:linear-gradient(180deg,#7dff5a,#39ff14 45%,#22c00a);color:#05200a;box-shadow:0 6px 24px -6px rgba(57,255,20,.6)}
 .btn.s{background:#16221a;color:#e8fff0;border:1px solid #2a4a34}
+.btn[aria-disabled=true]{cursor:not-allowed}.btn.s.is-off{background:#111;color:#8fa;border:1px dashed #2a4a34}.uninote{font-size:13px;color:#8fb09b;margin:8px 0 0}
 .btn.d{background:#111;color:#8fa;border:1px dashed #2a4a34;cursor:default}
 .phone{justify-self:center;width:min(300px,80vw);aspect-ratio:9/19;border-radius:44px;padding:12px;background:linear-gradient(160deg,#2a2f33,#0c0e10);box-shadow:0 30px 80px -20px rgba(57,255,20,.35),inset 0 0 0 2px #3a4046}
 .screen{width:100%;height:100%;border-radius:34px;background:#060708;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;padding:34px 16px 16px;gap:10px}
@@ -52,7 +53,7 @@ h2{font-size:24px;margin:0 0 12px}
 .disc{font-size:13px;color:#8fb09b;text-align:center;margin:48px auto 0;max-width:640px}
 footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}
 </style>
-<script src="countdown.js" defer></script><script src="disclaimer.js" defer></script><script src="notice.js" defer></script><script src="ask-dusty.js" defer></script>
+<script src="countdown.js" defer></script><script src="disclaimer.js" defer></script><script src="notice.js" defer></script><script src="get-dusty.js" defer></script><script src="ask-dusty.js" defer></script>
 </head><body><div class="wrap">
 <div class="top"><img src="dusty-logo.png" alt="Dusty logo" width="40" height="40">DUSTY</div>
 <div class="hero">
@@ -64,8 +65,10 @@ footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}
   <div class="btns">
    <a class="btn p" href="./">♻ Open the app</a>
    <a class="btn s" href="#install">📲 Install on your phone</a>
+   <a class="btn s is-off" data-uniswap aria-disabled="true" tabindex="-1">Uniswap pool opening soon</a>
    <span class="btn d" aria-disabled="true">▶ Google Play · coming soon</span>
   </div>
+  <p class="uninote">Swaps happen on Uniswap, not Dusty. Low liquidity: prices can move a lot.</p>
  </div>
  <div class="phone" aria-hidden="true"><div class="screen"><div class="notch"></div>
   <img src="dusty-logo.png" alt="">

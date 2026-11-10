@@ -150,6 +150,12 @@
         transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 3px 0 #0c0d0f, 0 4px 0 #000;
       }
       .x-btn:disabled .x-spinner { border-top-color: var(--x-green) !important; }
+      .x-btn[aria-disabled="true"] {
+        background: linear-gradient(180deg, #2d3236, #1f2326); color: var(--x-ink2); text-shadow: none; cursor: not-allowed; pointer-events: none;
+        transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 3px 0 #0c0d0f, 0 4px 0 #000;
+      }
+      a.x-btn { text-decoration: none; text-align: center; }
+      .x-uninote { font-size: 12px; color: var(--x-ink2); text-align: center; margin: 0 0 6px; }
       .x-btn--red {
         --x-dc: #7d0c05; --x-glow: rgba(255, 59, 48, 0.4); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
         background: linear-gradient(180deg, #ff7a70 0%, #f03a2e 18%, var(--x-red) 50%, #b8180e 100%);
@@ -374,7 +380,7 @@
     </style>
       <script src="countdown.js" defer></script>
       <script src="disclaimer.js" defer></script>
-      <script src="notice.js" defer></script>
+      <script src="notice.js" defer></script><script src="get-dusty.js" defer></script>
       <script src="ask-dusty.js" defer></script>
   </head>
   <body>
@@ -421,6 +427,8 @@
           <p class="x-lead">Sweep the tiny leftovers in your wallet into <b class="x-tick-sym">$DUSTY</b>.</p>
           <p class="x-note" style="justify-content: center; font-size: 13px"><svg><use href="#x-shield" /></svg>Works with MetaMask, Coinbase Wallet, Rabby and more.</p>
           <button class="x-btn" type="button" data-go="2" style="margin-top: 12px">Connect wallet</button>
+          <a class="x-btn x-btn--grey" data-uniswap aria-disabled="true" tabindex="-1">Uniswap pool opening soon</a>
+          <p class="x-uninote">Swaps happen on Uniswap, not Dusty. Low liquidity: prices can move a lot.</p>
           <p class="x-disc" data-disclaimer></p>
           <div class="x-card x-soon" data-label="SOON">
             <h3>Coming soon</h3>
@@ -533,6 +541,8 @@
               <dt>Status</dt><dd id="x-status">Received</dd>
             </dl>
             <button class="x-btn x-btn--grey" type="button" id="x-add">Add $DUSTY to wallet</button>
+            <a class="x-btn x-btn--grey" data-uniswap aria-disabled="true" tabindex="-1">Uniswap pool opening soon</a>
+            <p class="x-uninote">Swaps happen on Uniswap, not Dusty. Low liquidity: prices can move a lot.</p>
           </div>
 <div class="x-card x-soon" data-label="SOON">
             <h3>Coming soon</h3>

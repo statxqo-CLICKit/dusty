@@ -9,8 +9,9 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:6px 4px;bord
 td:last-child{word-break:break-all}a{color:#39ff88}small{color:#8ab}.ok{color:#39ff88}.bad{color:#ff8a8a}.warn{color:#ffcf5a}.mono{font-family:monospace;font-size:13px}
 .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#16261f;margin:8px 0}.bar i{display:block;height:100%}
 .leg span{display:inline-block;margin-right:12px;font-size:13px}.leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+.uni{display:block;text-align:center;min-height:48px;line-height:48px;border-radius:12px;background:#39ff88;color:#04140b;font-weight:700;text-decoration:none;margin-top:10px}.uni.is-off{background:#2a3d33;color:#7a9;pointer-events:none}
 footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
-<script src="disclaimer.js" defer></script></head>
+<script src="disclaimer.js" defer></script><script src="get-dusty.js" defer></script></head>
 <body><main>
 <a href="./"><img src="https://statxqo-clickit.github.io/dusty/token/dusty-256.png" alt="Dusty" width="40" height="40" style="border-radius:10px"></a>
 <h1>Dusty transparency</h1>
@@ -36,7 +37,9 @@ footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
 <table id="fees"><tr><td>Loading…</td><td></td></tr></table></div>
 
 <div class="card"><h2>Liquidity pool</h2>
-<table id="pool"><tr><td>Loading…</td><td></td></tr></table></div>
+<table id="pool"><tr><td>Loading…</td><td></td></tr></table>
+<a class="uni is-off" data-uniswap aria-disabled="true" tabindex="-1">Uniswap pool opening soon</a>
+<small>Swaps happen on Uniswap, not Dusty. Low liquidity: prices can move a lot.</small></div>
 
 <div class="card"><h2>Admin powers (stated plainly)</h2>
 <table id="admin"><tr><td>Loading…</td><td></td></tr></table>
