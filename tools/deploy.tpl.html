@@ -41,7 +41,7 @@ const err=(id,e)=>{$(id).textContent="Error: "+(e.shortMessage||e.reason||e.mess
 const A=v=>ethers.getAddress(v.trim());
 for(const k of ["tok","rec","signer"]){const v=localStorage.getItem("dv2_"+k);if(v)$(k).value=v}
 async function connect(){try{
- if(!window.ethereum){location.href="https://metamask.app.link/dapp/"+location.host+location.pathname;return}
+ if(!window.ethereum){var w=document.getElementById("who");w.innerHTML='No wallet found in this browser. Open this page inside the MetaMask app: tap <b>Browser</b> at the bottom, then paste <b>'+location.host+location.pathname+'</b>. <a href="https://metamask.app.link/dapp/'+location.host+location.pathname+'">Try opening MetaMask</a>';return}
  await ethereum.request({method:"eth_requestAccounts"});
  try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
   await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base Sepolia",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://sepolia.base.org"],blockExplorerUrls:["https://sepolia.basescan.org"]}]})}

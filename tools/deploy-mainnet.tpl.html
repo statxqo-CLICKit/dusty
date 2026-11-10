@@ -61,7 +61,7 @@ const st=(id,c)=>{$(id).className="step "+(c||"")};
 (async()=>{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(TBC+RBC));const x=[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
  if(x!==BC_SHA){$("bGo").disabled=true;say("Bytecode check failed. Do not deploy. Tell Hark.","err")}})();
 async function connect(){try{
- if(!window.ethereum){location.href="https://metamask.app.link/dapp/"+location.host+location.pathname;return}
+ if(!window.ethereum){var w=document.getElementById("who");w.innerHTML='No wallet found in this browser. Open this page inside the MetaMask app: tap <b>Browser</b> at the bottom, then paste <b>'+location.host+location.pathname+'</b>. <a href="https://metamask.app.link/dapp/'+location.host+location.pathname+'">Try opening MetaMask</a>';return}
  await ethereum.request({method:"eth_requestAccounts"});
  try{await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:HEX}]})}catch(e){
   if(e.code===4902||/unrecognized|not added|Unrecognized/i.test(emsg(e)))await ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:HEX,chainName:"Base",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:["https://mainnet.base.org"],blockExplorerUrls:[SCAN]}]});else throw e}
