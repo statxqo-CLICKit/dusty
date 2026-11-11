@@ -26,5 +26,6 @@ if(!acct)await connect();if(!acct)return;
 const a=(await ethereum.request({method:"eth_accounts"}))[0]||acct;acct=a;$("acct").textContent="Connected: "+a;
 say("Check MetaMask to sign…");const sig=await ethereum.request({method:"personal_sign",params:[hex(m),a]});
 $("sig").textContent=sig;$("by").textContent=a;$("out").hidden=false;say("Signed. Copy the signature and paste it back.","ok")}catch(e){say(e.message||String(e),"err")}};
+try{const q=new URLSearchParams(location.hash.slice(1)||location.search).get("m");if(q){$("m").value=q}}catch(e){}
 $("bk").onclick=async()=>{try{await navigator.clipboard.writeText($("sig").textContent);say("Copied.","ok")}catch(e){const r=document.createRange();r.selectNodeContents($("sig"));getSelection().removeAllRanges();getSelection().addRange(r);say("Selected: press copy.","ok")}};
 </script></body></html>
