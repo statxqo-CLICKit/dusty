@@ -124,28 +124,35 @@ interface ISwapRouter02 {
 
 /// Base mainnet fork: real Uniswap v3 position #6525151 owned by the admin wallet.
 /// Run: forge test --match-contract DustyLiquidityLockForkTest --fork-url https://mainnet.base.org
+/// Checks the LIVE lock on Base: LP NFT 6525151 has been held by 0xacCED9C1…5ee6 since 2026-11-09 22:37 PT.
 contract DustyLiquidityLockForkTest is Test {
-    uint256 constant UNLOCK = 1825825200;
+    uint256 constant UNLOCK = 1825825200; // 2027-11-09
     address constant NPM = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
     address constant ROUTER = 0x2626664c2603336E57B271c5C0b26F421741e481; // Uniswap SwapRouter02 on Base
     address constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address constant DUSTY = 0xAf47E82C6f7cB9E28bB0382a1FeAdBC6308FDDc1;
     address constant ADMIN = 0x9b8EBB1490E823bB152aCd64B198Df4d1035c7Fd;
+    address constant LOCK = 0xacCED9C10915F0587D2f37215438f1E0c71b5ee6;
     uint256 constant ID = 6525151;
 
-    function test_fork_lockLiquidity() public {
+    function test_fork_liveLock() public {
         if (block.chainid != 8453) return; // only meaningful on a Base fork
         INonfungiblePositionManager npm = INonfungiblePositionManager(NPM);
-        assertEq(npm.ownerOf(ID), ADMIN, "Admin should own the LP NFT");
-        (, , , , , , , uint128 liq0, , , , ) = IPos(NPM).positions(ID);
-        assertGt(liq0, 0);
+        DustyLiquidityLock lock = DustyLiquidityLock(LOCK);
 
-        vm.startPrank(ADMIN);
-        DustyLiquidityLock lock = new DustyLiquidityLock(npm, ID, ADMIN, UNLOCK);
-        npm.safeTransferFrom(ADMIN, address(lock), ID);
-        vm.stopPrank();
-        assertEq(npm.ownerOf(ID), address(lock));
+        // deployed lock is wired to the right NFT, beneficiary and date, and holds the position
+        assertGt(LOCK.code.length, 0, "lock deployed");
+        assertEq(address(lock.positionManager()), NPM);
+        assertEq(lock.tokenId(), ID);
+        assertEq(lock.beneficiary(), ADMIN);
+        assertEq(lock.unlockTime(), UNLOCK);
         assertTrue(lock.isLocked());
+        assertEq(npm.ownerOf(ID), LOCK, "lock should own the LP NFT");
+        (, , address t0, address t1, uint24 fee, , , uint128 liq0, , , , ) = IPos(NPM).positions(ID);
+        assertEq(t0, USDC);
+        assertEq(t1, DUSTY);
+        assertEq(fee, 10000);
+        assertGt(liq0, 0);
 
         // Admin (former owner) can no longer touch the liquidity.
         vm.prank(ADMIN);
