@@ -7,7 +7,7 @@
   var FEE = 10000; // 1% tier
   // Uniswap deep-link format: github.com/Uniswap/interface apps/web/src/features/deepLinking/README.md
   var SWAP_URL = "https://app.uniswap.org/swap?chain=base&inputCurrency=" + USDC + "&outputCurrency=" + DUSTY;
-  var RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.llamarpc.com"];
+  var RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.gateway.tenderly.co"];
   var ON = "Get DUSTY on Uniswap", SOON = "Uniswap pool opening soon", CHECK = "Checking Uniswap pool…";
   var pad = function (h) { return h.toLowerCase().replace(/^0x/, "").padStart(64, "0"); };
   function els() { return document.querySelectorAll("a[data-uniswap]"); }

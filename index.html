@@ -521,6 +521,7 @@
               </div>
             </div>
             <div class="x-netwarn x-hidden" id="x-netwarn" role="alert"><span id="x-netwarn-t">Your wallet is on another network.</span><button class="x-btn x-btn--sm" type="button" id="x-switch">Switch to Base</button></div>
+            <p class="x-note" style="font-size: 12px; margin-top: -4px" id="x-paynote">Payouts follow the DUSTY/USDC Uniswap pool's 30-minute average price, minus the 5% fee. The pool is very small, so prices can move a lot.</p>
             <p class="x-note" style="font-size: 13px"><svg><use href="#x-shield" /></svg><span id="x-scannote">Balances are read live from your wallet. Only the dust you tick is recycled, and only after you confirm in your wallet. A 5% recycle fee is taken in DUSTY.</span></p>
             <button class="x-btn" type="button" id="x-recycle" disabled>♻ Recycle dust</button>
             <div class="x-stat x-hidden" id="x-stat" role="status" aria-live="polite"><span class="x-spinner" id="x-statspin"></span><span id="x-stattext"></span></div>
@@ -604,7 +605,7 @@
       const WC_PROJECT_ID = "285acdd88b8d03791c962a3df94f70fa";
       const SIWE_DOMAIN = location.host || "statxqo-clickit.github.io";
       const SIWE_URI = location.host ? location.origin + location.pathname : "https://statxqo-clickit.github.io/dusty/";
-      const ETHERS_URL = "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+      const ETHERS_URL = "./vendor/ethers-6.15.0.min.js";
       const WC_URL = "https://esm.sh/@walletconnect/ethereum-provider@2.26.0";
       const PRICE_URL = "https://coins.llama.fi/prices/current/";
 
@@ -1151,6 +1152,7 @@
         updateTotals();
       }
       if (!IS_TEST) { loadRate(); setInterval(loadRate, 60000); }
+      if (IS_TEST) $("#x-paynote").classList.add("x-hidden"); // testnet uses a fixed demo rate
       $("#x-list").addEventListener("change", updateTotals);
       $("#x-amt").addEventListener("input", () => {
         const r0 = dustRows[0]; if (!r0) return;
@@ -1201,6 +1203,8 @@
         const m = (e && (e.shortMessage || e.reason || e.message)) || "Something went wrong.";
         if (/insufficient funds/i.test(m)) return "Not enough ETH on " + NET.name + " for gas. Add a little ETH and try again.";
         if (/expired/i.test(m)) return "The quote expired. Tap Recycle again for a fresh one.";
+        if (/too many requests/i.test(m)) return "Too many quote requests. Wait a minute, then tap Recycle again.";
+        if (/AbortError|TimeoutError|timed out|aborted/i.test((e && e.name) + " " + m)) return "The quote service is slow right now. Tap Recycle again in a moment.";
         if (/network|fetch|Failed to fetch|busy/i.test(m)) return "Network is busy. Tap Recycle again in a moment.";
         return m.slice(0, 160);
       }
@@ -1247,19 +1251,25 @@
             setStat(`Getting a quote for ${row.sym}…`);
             const body = { user: me, token: row.addr, amount: amount.toString() };
             if (NET.recyclerVersion === 2) body.recycler = recA;
-            const r = await fetch(QUOTE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+            const r = await fetch(QUOTE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+              signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined });
             const q = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(q.error || "quote service unavailable");
             // L-2: never sign a quote for another chain, recycler, user, token or amount
             if (Number(q.chainId) !== NET.chainId || getAddress(q.recycler) !== recA || getAddress(q.user) !== me ||
                 getAddress(q.token) !== getAddress(row.addr) || BigInt(q.amount) !== amount || BigInt(q.deadline) * 1000n < BigInt(Date.now()))
               throw new Error("Quote didn't match your request. Nothing was sent.");
+            // show the signed quote (after the fee) before anything is approved or sent
+            const qFee = BigInt(q.feeBps ?? FEE_BPS), qOut = BigInt(q.dustyOut);
+            const toUser = qOut - (qOut * qFee) / 10000n;
+            const getTxt = "You'll receive ~" + fmt(Number(toUser / 10n ** 15n) / 1000) + " " + TOKEN_TICKER;
+            if (rows.length === 1) $("#x-out").textContent = "~" + fmt(Number(toUser / 10n ** 15n) / 1000) + " " + TOKEN_TICKER;
             const erc = new Contract(row.addr, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
             if ((await erc.allowance(me, recA)) < amount) {
-              setStat(`Approve ${row.sym} in your wallet (exact amount only)…`);
+              setStat(`${getTxt}. Approve ${row.sym} in your wallet (exact amount only)…`);
               const ta = await erc.approve(recA, amount); setStat("Waiting for approval to confirm…"); await ta.wait();
             }
-            setStat("Confirm the recycle in your wallet…");
+            setStat(`${getTxt}. Confirm the recycle in your wallet…`);
             const tx = await rec.recycle(row.addr, amount, q.dustyOut, q.deadline, q.signature);
             lastTx = tx.hash;
             setStat(`Recycling on ${NET.name}…`);

@@ -55,7 +55,7 @@ g. Read everything back and verify</div>
 <small>Next: <a href="seed-pool.html">seed the DUSTY/USDC pool</a> · <a href="treasury.html">Treasury (distribute fees)</a> · Later admin tasks: <a href="recycler.html">admin console</a> · <a href="terms.html">Terms</a></small>
 </main>
 <script type="module">
-import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+import {ethers} from "./vendor/ethers-6.15.0.min.js";
 const TABI=__TOKEN_ABI__;
 const TBC="__TOKEN_BC__";
 const RABI=__REC_ABI__;
@@ -87,8 +87,8 @@ async function connect(){try{
  $("who").innerHTML=link(me)+"  ·  "+Number(ethers.formatEther(bal)).toFixed(5)+" ETH on Base"+(bal<ethers.parseEther("0.0003")?'<br><span class="warn">⚠ Low ETH for gas. Add a little ETH on Base first.</span>':"");
  st("s1","done");
 }catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
-ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
-ethereum?.on?.("accountsChanged",()=>{signer=null;$("who").textContent="Account changed. Tap Connect again."});
+window.ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
+window.ethereum?.on?.("accountsChanged",()=>{signer=null;$("who").textContent="Account changed. Tap Connect again."});
 async function need(){if(!signer)await connect();if(!signer)throw new Error("connect your wallet on Base first (step 1)");
  const n=await signer.provider.getNetwork();if(n.chainId!==CHAIN)throw new Error("wallet is not on Base mainnet (8453)")}
 async function roles(quiet){

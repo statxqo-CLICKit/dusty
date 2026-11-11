@@ -39,6 +39,7 @@ footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
 <table id="mint"><tr><td>Loading…</td><td></td></tr></table></div>
 
 <div class="card"><h2>Fees and treasury</h2>
+<small>Payouts follow the DUSTY/USDC Uniswap pool's 30-minute average price, minus the 5% fee. The pool is very small, so prices can move a lot.</small>
 <table id="fees"><tr><td>Loading…</td><td></td></tr></table></div>
 
 <div class="card"><h2>Liquidity pool</h2>
@@ -56,13 +57,13 @@ footer{margin-top:16px;text-align:center;font-size:13px;color:#6c8a78}</style>
 <footer><a href="./">Open the app</a> · <a href="welcome.html">Welcome</a> · <a href="terms.html">Terms</a></footer>
 </main>
 <script type="module">
-import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+import {ethers} from "./vendor/ethers-6.15.0.min.js";
 const SCAN="https://basescan.org";
 const DUSTY="__DUSTY__",REC="__RECYCLER__",SPLIT="__SPLIT__",RESERVE="__RESERVE__",ADMIN="__ADMIN__",FOUNDER_B="__FOUNDER_B__";
 const LP_ID=6525151n,USDC="__USDC__",SPLIT_MAIN="__SPLIT_MAIN__",V3F="__V3_FACTORY__",V3NPM="__V3_NPM__",FROM=__DEPLOY_BLOCK__;
 const LRT="__LOCK_RT__",LIMM=__LOCK_IMM__,UNLOCK=__UNLOCK__n,LOCK_AMT=ethers.parseUnits("__LOCK_AMT__",18);
 const PRT="__LP_RT__",PIMM=__LP_IMM__;
-const RPCS=["https://mainnet.base.org","https://base-rpc.publicnode.com","https://base.llamarpc.com"];
+const RPCS=["https://mainnet.base.org","https://base-rpc.publicnode.com","https://base.gateway.tenderly.co"];
 const $=id=>document.getElementById(id);
 const short=a=>a.slice(0,8)+"…"+a.slice(-6);
 const link=(a,t,l)=>`<a target="_blank" rel="noopener" href="${SCAN}/${t||"address"}/${a}">${l||short(a)}</a>`;

@@ -31,7 +31,7 @@ label{display:block;margin-top:10px}
 <small><a href="deploy-mainnet.html">Deploy page</a> · <a href="seed-pool.html">Seed pool</a> · <a href="recycler.html">Admin console</a> · <a href="terms.html">Terms</a></small>
 </main>
 <script type="module">
-import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+import {ethers} from "./vendor/ethers-6.15.0.min.js";
 const CHAIN=8453n,HEX="0x2105",SCAN="https://basescan.org";
 const SPLIT_MAIN="__SPLIT_MAIN__";   // 0xSplits v1 SplitMain, Base (docs.splits.org/core/split)
 const MULTICALL3="__MULTICALL3__";   // Multicall3, same address on every chain
@@ -59,7 +59,7 @@ async function connect(){try{
  SPLIT=ethers.getAddress(await new ethers.Contract(SPLIT_MAIN,SABI,p).predictImmutableSplitAddress(ACCOUNTS,PCT,0));
  await refresh();
 }catch(e){$("who").textContent="Error: "+emsg(e);st("s1","bad")}}
-ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
+window.ethereum?.on?.("chainChanged",()=>{signer=null;$("who").textContent="Network changed. Tap Connect again."});
 async function state(){
  const pr=signer.provider,sm=new ethers.Contract(SPLIT_MAIN,SABI,pr),tokA=ethers.getAddress($("tok").value.trim()),e=new ethers.Contract(tokA,EABI,pr);
  const exists=(await pr.getCode(SPLIT))!=="0x"&&(await sm.getHash(SPLIT))===HASH;

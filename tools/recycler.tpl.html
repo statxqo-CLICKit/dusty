@@ -33,7 +33,7 @@ button.red{background:#ff5a5a;color:#fff}button:disabled{background:#2a3d33;colo
 <small><a href="terms.html">Terms</a> · Not financial advice.</small>
 </main>
 <script type="module">
-import {ethers} from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+import {ethers} from "./vendor/ethers-6.15.0.min.js";
 const TABI=__TOKEN_ABI__;
 const RABI=__REC_ABI__;
 const CHAIN=84532n,HEX="0x14a34";let signer,me;const $=id=>document.getElementById(id);
