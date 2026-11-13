@@ -13,7 +13,7 @@ TOKEN = "0xAf47E82C6f7cB9E28bB0382a1FeAdBC6308FDDc1".lower()
 RECYCLER = "0x199Fef502B969018091294a69e6634DA7aC9e64d".lower()
 USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".lower()
 PAGES = ["", "index.html", "welcome.html", "transparency.html", "lock-reserve.html", "seed-pool.html", "sign-message.html",
-         "deploy-mainnet.html", "treasury.html", "terms.html"]
+         "deploy-mainnet.html", "treasury.html", "terms.html", "how-it-works.html", "contracts.html", "security.html"]
 STATIC = ["download/Dusty.apk", "manifest.webmanifest", "sw.js", "vendor/ethers-6.15.0.min.js", "disclaimer.js", "get-dusty.js",
           "notice.js", "ask-dusty.js", "countdown.js", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",
           "favicon-32.png", "logo-mark.png", "dusty-logo.png"]

@@ -1,0 +1,6 @@
+Contact: https://x.com/DUSTYappsocial
+Contact: https://github.com/statxqo-CLICKit/dusty/security/advisories/new
+Expires: 2027-11-12T23:59:00-08:00
+Preferred-Languages: en
+Canonical: https://statxqo-clickit.github.io/dusty/.well-known/security.txt
+Policy: https://statxqo-clickit.github.io/dusty/security.html

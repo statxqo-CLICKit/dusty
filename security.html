@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dusty · Security and responsible disclosure</title>
+<!--seo-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="How to report a security issue in Dusty, how to stay safe (Dusty never asks for a seed phrase), and the official verified contract list.">
+<link rel="canonical" href="https://statxqo-clickit.github.io/dusty/security.html">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Dusty">
+<meta property="og:title" content="Dusty · Security and responsible disclosure"><meta property="og:description" content="How to report a security issue in Dusty, how to stay safe (Dusty never asks for a seed phrase), and the official verified contract list.">
+<meta property="og:url" content="https://statxqo-clickit.github.io/dusty/security.html"><meta property="og:image" content="https://statxqo-clickit.github.io/dusty/token/dusty-og-1200x630.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Dusty: recycle your wallet dust">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@DUSTYappsocial">
+<meta name="twitter:title" content="Dusty · Security and responsible disclosure"><meta name="twitter:description" content="How to report a security issue in Dusty, how to stay safe (Dusty never asks for a seed phrase), and the official verified contract list."><meta name="twitter:image" content="https://statxqo-clickit.github.io/dusty/token/dusty-og-1200x630.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://statxqo-clickit.github.io/dusty/#org","name":"Dusty","alternateName":"Dusty Recycler","url":"https://statxqo-clickit.github.io/dusty/","logo":"https://statxqo-clickit.github.io/dusty/token/dusty-logo-1024.png","sameAs":["https://x.com/DUSTYappsocial","https://coinranking.com/coin/ZXRnUifLp+dusty-dusty"],"parentOrganization":{"@type":"Organization","name":"Team C.L.I.C.K.it"}},{"@type":"WebPage","@id":"https://statxqo-clickit.github.io/dusty/security.html","url":"https://statxqo-clickit.github.io/dusty/security.html","name":"Dusty \u00b7 Security and responsible disclosure","description":"How to report a security issue in Dusty, how to stay safe (Dusty never asks for a seed phrase), and the official verified contract list.","isPartOf":{"@id":"https://statxqo-clickit.github.io/dusty/#app"},"publisher":{"@id":"https://statxqo-clickit.github.io/dusty/#org"}}]}</script>
+<!--/seo-->
+<link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#060708">
+<style>*{box-sizing:border-box}body{margin:0;background:radial-gradient(120% 50% at 50% 0%,#0f2a14 0%,#060708 60%);color:#e8fff0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 18px 72px}a{color:#39ff14}h1{font-size:clamp(28px,7vw,42px);line-height:1.1;margin:14px 0 8px}h1 span{color:#39ff14}
+h2{color:#b6ff3b;font-size:20px;margin:30px 0 8px}p,li{color:#cfe6d6}.lead{font-size:18px;color:#bcd6c4}
+.top{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;text-decoration:none;color:#e8fff0}.top img{width:36px;height:36px;border-radius:9px}
+.card{background:#0b130e;border:1px solid #1f3a2c;border-radius:14px;padding:16px;margin:12px 0}
+.steps{display:grid;gap:12px;padding:0;margin:0;list-style:none;counter-reset:s}.steps li{counter-increment:s;background:#0b130e;border:1px solid #1f3a2c;border-radius:14px;padding:14px 14px 14px 58px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:14px;width:32px;height:32px;border-radius:50%;background:#39ff14;color:#05200a;font-weight:900;display:flex;align-items:center;justify-content:center}
+.steps b{color:#e8fff0}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:12px;font-weight:800;text-decoration:none;border:0;cursor:pointer;font-size:16px}
+.btn.p{background:linear-gradient(180deg,#7dff5a,#39ff14 45%,#22c00a);color:#05200a}.btn.s{background:#16221a;color:#e8fff0;border:1px solid #2a4a34}
+.row2{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:9px 6px;border-top:1px solid #1f3a2c;vertical-align:top}td:first-child{color:#a9c4b4;width:38%}
+code{font:13px ui-monospace,Menlo,Consolas,monospace;word-break:break-all;color:#b6ff3b}
+.warn{border:1px solid #5a4a12;background:#16120a;border-radius:12px;padding:14px;color:#ffe08a}
+footer{margin-top:36px;text-align:center;font-size:14px;color:#6c8a78;line-height:2}footer a{margin:0 4px}
+.demo{position:relative;background:#060708;border:1px dashed #39ff14;border-radius:16px;padding:16px;margin:12px 0}
+.demo .tag{position:absolute;top:-11px;left:14px;background:#39ff14;color:#05200a;font-weight:900;font-size:12px;letter-spacing:.08em;padding:2px 8px;border-radius:6px}
+.dr{display:flex;align-items:center;gap:10px;background:#0d1714;border:1px solid #1f3a2c;border-radius:12px;padding:10px 12px;margin:8px 0;font:14px ui-monospace,Menlo,monospace;cursor:pointer}
+.dr input{width:20px;height:20px;accent-color:#39ff14}.dr span{flex:1}.dr small{color:#6c8;font-family:system-ui}
+.dst{min-height:24px;color:#a9c4b4;font-size:14px;margin:8px 0}.got{text-align:center;background:#071a0b;border:1px solid #39ff14;border-radius:12px;padding:12px;font-weight:800;color:#39ff14;font-size:18px}
+video{display:block;width:min(320px,100%);margin:12px auto;border-radius:16px;border:1px solid #1f3a2c;background:#000}[hidden]{display:none!important}</style></head>
+<body><main>
+<a class="top" href="./"><img src="logo-mark.png" alt="">dusty</a>
+<h1>Dusty <span>security</span></h1>
+<p class="lead">How to report a problem, and how to stay safe while you recycle.</p>
+<h2>Stay safe</h2>
+<ul>
+<li><b>Dusty never asks for your seed phrase or private key.</b> Not in the app, not on X, not in DMs. Anyone who asks is a scammer.</li>
+<li>Dusty never asks you to send tokens to a person. Recycling happens only through the verified Recycler contract, and you confirm every step in your own wallet.</li>
+<li>Approvals are for the exact amount you recycle, never unlimited.</li>
+<li>Only use the official site <a href="./">statxqo-clickit.github.io/dusty</a> and the official X account <a href="https://x.com/DUSTYappsocial" rel="noopener">@DUSTYappsocial</a>.</li>
+<li>Check addresses against the <a href="contracts.html">verified contract list</a>. Lookalike "Dusty" tokens exist.</li>
+</ul>
+<h2>Report a vulnerability</h2>
+<p>Found a bug in the contracts, the app or this site? Please tell us privately first and give us a fair chance to fix it before sharing it publicly.</p>
+<ul>
+<li>Send a direct message to <a href="https://x.com/DUSTYappsocial" rel="noopener">@DUSTYappsocial</a> on X with "Security" in the first line. Or use <a href="https://github.com/statxqo-CLICKit/dusty/security/advisories/new" rel="noopener">GitHub private vulnerability reporting</a> if it is open on the repo.</li>
+<li>Include what you found, the steps to reproduce it, and the contract or page involved.</li>
+<li>Do not include seed phrases, private keys or anyone's personal data. We will never ask for them.</li>
+<li>Please act in good faith: no testing that moves other people's funds, no denial-of-service, no social engineering.</li>
+</ul>
+<p>We read every report and aim to reply within 3 days. Machine-readable contact: <a href="https://statxqo-clickit.github.io/dusty/.well-known/security.txt">security.txt</a>.</p>
+<h2>Scope</h2>
+<p>The contracts on the <a href="contracts.html">contracts page</a>, the Dusty web app and this site. Contracts are unaudited; their source is verified on Basescan.</p>
+<footer><a href="./">Open the app</a>·<a href="how-it-works.html">How it works</a>·<a href="contracts.html">Contracts</a>·<a href="transparency.html">Transparency</a>·<a href="security.html">Security</a>·<a href="terms.html">Terms</a>·<a href="https://x.com/DUSTYappsocial" rel="noopener">X @DUSTYappsocial</a><br>Built on Base by Team C.L.I.C.K.it · Contracts are unaudited · Not financial advice</footer>
+</main></body></html>
