@@ -45,7 +45,8 @@ def block(path, title, desc, csp):
             {"@type": "HowToStep", "position": 3, "name": "Confirm and receive DUSTY", "text": "Check the DUSTY amount shown after the 5% fee, confirm in your own wallet, and DUSTY lands in your wallet."}]})
     ld = json.dumps({"@context": "https://schema.org", "@graph": graph}, separators=(",", ":"))
     e = lambda s: s.replace("&", "&amp;").replace('"', "&quot;")
-    return ("<!--seo-->\n"
+    verify = '<meta name="msvalidate.01" content="E278ECBEB4982714A5B5FAE1A43221BA">\n' if path == "" else ""
+    return ("<!--seo-->\n" + verify +
             f'<meta http-equiv="Content-Security-Policy" content="{csp}">\n'
             '<meta name="referrer" content="strict-origin-when-cross-origin">\n'
             f'<meta name="description" content="{e(desc)}">\n'
